@@ -154,21 +154,6 @@ def start_game(update, context):
                                 'x':x,'y':y,'z':z,'current_sector':current_sector,'condition':condition,
                                 'wrap':wrap,'helm':helm}})
     sub_param.update({chat_id:{'shields_flag':0,'helm_flag':0,'phasers_flag':0,'lrs_flag':0,'helm':0,'wrap':0,'torpedoes':0}})
-    # parameters[chat_id]['galaxy']=galaxy
-    # parameters[chat_id]['klingons']=klingons
-    # parameters[chat_id]['energy']=energy
-    # parameters[chat_id]['torpedoes']=torpedoes
-    # parameters[chat_id]['shields']=shields
-    # parameters[chat_id]['stardate']=stardate
-    # parameters[chat_id]['sector']=sector
-    # parameters[chat_id]['ent_position']=ent_position
-    # parameters[chat_id]['x']=x
-    # parameters[chat_id]['y']=y
-    # parameters[chat_id]['z']=z
-    # parameters[chat_id]['current_sector']=current_sector
-    # parameters[chat_id]['condition']=condition
-    # parameters[chat_id]['wrap'] = wrap
-    # parameters[chat_id]['helm'] = helm
     # init_data(chat_id, galaxy, klingons, energy, torpedoes, shields, stardate, sector, ent_position, x, y, z, current_sector, condition, wrap, helm)
     if klingons > 0 and energy > 0:
 
@@ -277,8 +262,9 @@ def bot_sub_command(update, context):
             time.sleep(rand_sleep())
             context.bot.send_message(chat_id=update.effective_chat.id, text=status_msg,parse_mode=telegram.ParseMode.MARKDOWN)
             time.sleep(rand_sleep())
-            atack(update,context)
-            context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',parse_mode=telegram.ParseMode.MARKDOWN)
+            flag_attack = atack(update,context)
+            if flag_attack == False:
+                context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',parse_mode=telegram.ParseMode.MARKDOWN)
             time.sleep(rand_sleep())
             print('Command (1-6, 0 for help)? ')
             sub_param[chat_id]['shields_flag']=0
@@ -315,11 +301,16 @@ def bot_sub_command(update, context):
                 time.sleep(rand_sleep())
                 context.bot.send_message(chat_id=update.effective_chat.id, text=status_msg,parse_mode=telegram.ParseMode.MARKDOWN)
                 time.sleep(rand_sleep())
+                context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
+                                         parse_mode=telegram.ParseMode.MARKDOWN)
+                time.sleep(rand_sleep())
             sub_param[chat_id]['phasers_flag']=0
             print('Command (1-6, 0 for help)? ')
-            atack(update,context)
-            context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',parse_mode=telegram.ParseMode.MARKDOWN)
-            time.sleep(rand_sleep())
+            flag_attack = atack(update, context)
+            if flag_attack == False:
+                context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
+                                         parse_mode=telegram.ParseMode.MARKDOWN)
+
 
         elif sub_param[chat_id]['helm']==1:
             sub_param[chat_id]['wrap']=1
@@ -365,8 +356,10 @@ def bot_sub_command(update, context):
             status_msg = status(sector,stardate,condition,energy,torpedoes,shields,klingons)
             context.bot.send_message(chat_id=update.effective_chat.id, text=status_msg,parse_mode=telegram.ParseMode.MARKDOWN)
             time.sleep(rand_sleep())
-            atack(update,context)
-            context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',parse_mode=telegram.ParseMode.MARKDOWN)
+            flag_attack = atack(update, context)
+            if flag_attack == False:
+                context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
+                                         parse_mode=telegram.ParseMode.MARKDOWN)
             time.sleep(rand_sleep())
             sub_param[chat_id]['wrap']=0
 
@@ -394,8 +387,10 @@ def bot_sub_command(update, context):
             time.sleep(rand_sleep())
             context.bot.send_message(chat_id=update.effective_chat.id, text=status_msg,parse_mode=telegram.ParseMode.MARKDOWN)
             time.sleep(rand_sleep())
-            atack(update,context)
-            context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',parse_mode=telegram.ParseMode.MARKDOWN)
+            flag_attack = atack(update, context)
+            if flag_attack == False:
+                context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
+                                         parse_mode=telegram.ParseMode.MARKDOWN)
             sub_param[chat_id]['torpedoes']=0
 
 
@@ -404,6 +399,23 @@ def bot_sub_command(update, context):
         print("Command not recognised captain")
         context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand not recognised captain ``` ', parse_mode=telegram.ParseMode.MARKDOWN)
         sub_param[chat_id]['torpedoes'] = 0
+
+    if parameters[chat_id]['energy']==0:
+        over_msg = ' ```\nGame Over!\nStarting new game ```'
+        lose_msg = lose()
+        context.bot.send_message(chat_id=update.effective_chat.id, text=lose_msg,
+                                 parse_mode=telegram.ParseMode.MARKDOWN)
+        time.sleep(rand_sleep())
+        context.bot.send_message(chat_id=update.effective_chat.id, text=over_msg,
+                                 parse_mode=telegram.ParseMode.MARKDOWN)
+        time.sleep(rand_sleep())
+        start_game(update,context)
+    elif parameters[chat_id]['energy']!=0 and parameters[chat_id]['klingons']<=0:
+        prom_msg = promotion()
+        context.bot.send_message(chat_id=update.effective_chat.id, text=prom_msg,
+                                 parse_mode=telegram.ParseMode.MARKDOWN)
+        start_game(update,context)
+
 
 def atack(update,context):
     global parameters
@@ -418,7 +430,7 @@ def atack(update,context):
     torpedoes=parameters[chat_id]['torpedoes']
     klingons=parameters[chat_id]['klingons']
     energy = parameters[chat_id]['energy']
-
+    attack = False
     if condition == "Red":
         if random.randint(1,9)<6:
             print ("Red alert - Klingons attacking!")
@@ -440,6 +452,8 @@ def atack(update,context):
                 context.bot.send_message(chat_id=update.effective_chat.id, text=msg3,parse_mode=telegram.ParseMode.MARKDOWN)
                 time.sleep(rand_sleep())
                 energy = 0
+                attack = True
+                parameters[chat_id]['energy'] = energy
             else:
                 condition,srs_map=srs(current_sector,ent_position)
                 parameters[chat_id]['condition']=condition
@@ -449,121 +463,7 @@ def atack(update,context):
                 time.sleep(rand_sleep())
                 context.bot.send_message(chat_id=update.effective_chat.id, text=status_msg,parse_mode=telegram.ParseMode.MARKDOWN)
                 time.sleep(rand_sleep())
-
-#     if klingons > 0 and energy > 0:
-
-#         # Command
-#         # 1 = Helm
-#         # 2 = Long range scan
-#         # 3 = Phasers
-#         # 4 = Photon torpedoes
-#         # 5 = Shields
-#         # 6 = Resign
-#         print('Command (1-6, 0 for help)? ')
-#         command=bot_command_
-#         if command == 0:
-#             showhelp()
-
-#         elif command == 1:
-#             new_sector,energy,ent_position,stardate=helm(galaxy,sector,
-#             energy,current_sector,ent_position,stardate)
-#             # If we're still in the same sector as before, draw the Enterprise
-#             if sector == new_sector:
-#                 current_sector[ent_position]=4
-#             else:
-#             # Else set up the Enterprise in the new sector
-#                 sector = new_sector
-#                 ent_position = random.randint(0,63)
-#                 x,y,z=decode(galaxy[sector])
-#                 current_sector=init(x,y,z,ent_position)
-#             # Perform a short range scan after every movement
-#             condition=srs(current_sector,ent_position)
-#             if condition == "Docked":
-#                 # Reset energy, torpedoes and shields
-#                 energy=3000
-#                 torpedoes=15
-#                 shields=0
-#             status(sector,stardate,condition,energy,torpedoes,shields,klingons)
-#         elif command == 2:
-#             lrs(galaxy,sector)
-#         elif command == 3:
-#             shields,energy,current_sector,ks=phasers(condition,shields,energy,
-#             current_sector,ent_position,x)
-#             if ks < x:
-#                 # (x-ks) Klingons have been destroyed-update galaxy map
-#                 galaxy[sector]=galaxy[sector]-(100*(x-ks))
-#                 # update total klingons
-#                 klingons=klingons-(x-ks)
-#                 # update sector klingons
-#                 x=ks
-#             # Do we still have shields left?
-#             if shields < 0:
-#                 print ("Enterprise dead in space")
-#                 energy = 0
-#             else:
-#                 condition=srs(current_sector,ent_position)
-#                 status(sector,stardate,condition,energy,torpedoes,
-#                 shields,klingons)
-#         elif command == 4:
-#             torpedoes,current_sector,ks=photontorpedoes(torpedoes,
-#             current_sector,ent_position,x)
-#             # A Klingon has been destroyed-update galaxy map
-#             if ks < x:
-#                 galaxy[sector]=galaxy[sector]-100
-#                 # update total klingons
-#                 klingons=klingons-(x-ks)
-#                 # update sector klingons
-#                 x=ks
-#             condition=srs(current_sector,ent_position)
-#             status(sector,stardate,condition,energy,torpedoes,shields,klingons)
-#         elif command == 5:
-#             energy,shields=addshields(energy,shields)
-#             condition=srs(current_sector,ent_position)
-#             status(sector,stardate,condition,energy,torpedoes,shields,klingons)
-#         elif command == 6:
-#             # Set quit condition by making energy = 0
-#             energy = 0
-#         else:
-#             print ("Command not recognised captain")
-#         # After a command has been issued and condition is Red, a klingon may
-#         # fire randomly on the enterprise!
-#         if condition == "Red" and command != 0:
-#             if random.randint(1,9)<6:
-#                 print ("Red alert - Klingons attacking!")
-#                 time.sleep(0.5 * second_coefficient)
-#                 damage=x*random.randint(1,50)
-#                 shields=shields-damage
-#                 print ("Hit on shields: ",damage," energy units")
-#                 # Do we still have shields left?
-#                 if shields < 0:
-#                     print ("Enterprise dead in space")
-#                     energy = 0
-#                 else:
-#                     condition=srs(current_sector,ent_position)
-#                     status(sector,stardate,condition,energy,torpedoes,
-#                     shields,klingons)
-#         if bot_command is not None:
-#             a211qw=1# break # bail out of loop after one pass during testing
-#     # If we get here we've won if no klingons are left, but lost otherwise
-#     if klingons == 0:
-#         promotion()
-#     elif energy <= 0:
-#         lose()
-#     parameters[chat_id]['galaxy']=galaxy
-#     parameters[chat_id]['klingons']=klingons
-#     parameters[chat_id]['energy']=energy
-#     parameters[chat_id]['torpedoes']=torpedoes
-#     parameters[chat_id]['shields']=shields
-#     parameters[chat_id]['stardate']=stardate
-#     parameters[chat_id]['sector']=sector
-#     parameters[chat_id]['ent_position']=ent_position
-#     parameters[chat_id]['x']=x
-#     parameters[chat_id]['y']=y
-#     parameters[chat_id]['z']=z
-#     parameters[chat_id]['current_sector']=current_sector
-#     parameters[chat_id]['condition']=condition
-#     #print('my command is ',command,'\n its type is ', type(command))
-
+    return attack
 
 def status(sector,stardate,condition,energy,torpedoes,shields,klingons):
     time.sleep(0.2 * second_coefficient)
@@ -620,9 +520,17 @@ def promotion():
     print ("\nYou have successfully completed your mission!")
     print ("The federation has been saved.")
     print ("You have been promoted to Admiral Kirk.")
+    promotion_msg = ''' ``` 
+You have successfully completed your mission!
+The federation has been saved.
+You have been promoted to Admiral Kirk.  
+    '''
+    return promotion_msg
 
 def lose():
     print ("\nYou are relieved of duty.")
+    lose = "```\nYou are relieved of duty. ```"
+    return lose
 
 def decode( sector):
     # Hundreds = klingons, tens = starbases, units = stars
