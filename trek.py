@@ -89,12 +89,13 @@ def rand_sleep():
     return rand_sleep
 
 def info(update, context):
-    msg = '''
-    Thats my boring bot, based on star trek text rpg from 1973.
-    https://github.com/SimonBorin/trek_bot/tree/trash
-    @blooomberg
-    '''
-    context.bot.send_message(chat_id=update.effective_chat.id, text=msg, parse_mode=telegram.ParseMode.MARKDOWN)
+    s=2
+    info_message = '''
+Thats my boring bot, based on star trek text rpg from 1973.
+https://github.com/SimonBorin/trek_bot/tree/trash
+@blooomberg
+'''
+    context.bot.send_message(chat_id=update.effective_chat.id, text=info_message)
     time.sleep(rand_sleep())
 
 
@@ -1015,7 +1016,7 @@ def fuck_you(chat_id,):
     print("fuck you",chat_id)
 
 [dispatcher.add_handler(i) for i in [
-CommandHandler('info', info),
+    CommandHandler('info', info),
     CommandHandler('start', start_game),
     CommandHandler(['help', '0' ], bot_help),
     CommandHandler(['helm', '1' ], bot_helm),
