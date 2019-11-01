@@ -748,7 +748,7 @@ def helm(galaxy,sector,energy,cur_sec,epos,stardate, helm_, warp_):
                     if vert < 0 or vert > 7 or horiz < 0 or horiz > 7:
                         out=True
                         # Calculate new sector and join ends of the galaxy
-                        sector=join(sector+8*(horiz/8)+(vert/8))
+                        sector=int(join(sector+8*(horiz/8)+(vert/8)))
                     else:
                         # If we are in the original sector we can't go through
                         # solid objects! So reset course postion 1 click
