@@ -1,4 +1,4 @@
-# Star-trek text rpg
+# Star Trek Text Game Bot
 
 Python port of a Tiny Basic 'trek' game
 Ported to python3 </br>
