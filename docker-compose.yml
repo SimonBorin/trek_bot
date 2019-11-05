@@ -1,7 +1,7 @@
 version: "3"
 services:
 
-    yoba:
+    StarTrek:
         image: blooomberg/trek_bot
         build:
             context: .
