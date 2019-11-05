@@ -1,0 +1,9 @@
+version: "3"
+services:
+
+    yoba:
+        image: blooomberg/trek_bot
+        build:
+            context: .
+            dockerfile: ./Dockerfile
+        restart: always
