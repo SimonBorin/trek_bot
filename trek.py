@@ -75,6 +75,11 @@ https://github.com/SimonBorin/trek_bot/
     time.sleep(rand_sleep())
 
 
+def manual(update, context):
+    msg = 'https://github.com/SimonBorin/trek_bot/wiki/Manual'
+    context.bot.send_message(chat_id=update.effective_chat.id, text=msg)
+    time.sleep(rand_sleep())
+
 def start_game(update, context):
     global parameters
     # main()
@@ -89,7 +94,7 @@ def start_game(update, context):
     # No klingons around ... yet!
     klingons = 0
 
-    # The galaxy is divided into 64 sectors. Each sectoris represented by one 
+    # The galaxy is divided into 64 sectors. Each sector is represented by one
     # element in the galaxy list. The galaxy list contains a three digit number
     # Hundreds = number of klingons in the sector
     # Tens = number of starbases
@@ -942,6 +947,8 @@ def showhelp():
 4 - Photon Torpedoes
 5 - Shields
 6 - Resign
+    Manual
+    Info
 ```
     '''
     return msg
@@ -949,6 +956,7 @@ def showhelp():
 
 [dispatcher.add_handler(i) for i in [
     CommandHandler('info', info),
+    CommandHandler('manual', manual),
     CommandHandler('start', start_game),
     CommandHandler(['help', '0'], bot_help),
     CommandHandler(['helm', '1'], bot_helm),
