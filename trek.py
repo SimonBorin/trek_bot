@@ -15,10 +15,12 @@ with open(r'./params.yaml') as file:
 updater = Updater(token=token, use_context=True)
 dispatcher = updater.dispatcher
 
+
 def sql_conn():
     conn = sqlite3.connect("game_data.db")
     cursor = conn.cursor()
     return cursor, conn
+
 
 # global vars
 parameters = {}
@@ -212,8 +214,6 @@ def bot_resign(update, context):
                              parse_mode=telegram.ParseMode.MARKDOWN)
     # parameters[chat_id]['energy'] = 0
     start_game(update, context)
-
-
 
 
 def bot_sub_command(update, context):
@@ -584,7 +584,7 @@ def init(klingons, bases, stars, eposition):
         if current_sector[position] == 0:
             current_sector[position] = -200
             klingons = klingons - 1
-    print('stars - ',stars)
+    print('stars - ', stars)
     return (current_sector)
 
 
@@ -699,7 +699,7 @@ def helm(galaxy, sector, energy, cur_sec, epos, stardate, helm_, warp_):
                             horiz_moove_cooficent = 8
                         sector = join(sector + vert_moove_cooficent + horiz_moove_cooficent)
 
-                        print('new sector ',sector)
+                        print('new sector ', sector)
                     else:
                         # If we are in the original sector we can't go through
                         # solid objects! So reset course postion 1 click
@@ -945,6 +945,7 @@ def showhelp():
 ```
     '''
     return msg
+
 
 [dispatcher.add_handler(i) for i in [
     CommandHandler('info', info),
