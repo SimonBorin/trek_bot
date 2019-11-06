@@ -2,7 +2,7 @@ import random
 import re
 import yaml
 import time
-import sqlite3
+
 
 from telegram.ext import Updater
 from telegram.ext import CommandHandler, MessageHandler, Filters
@@ -16,12 +16,6 @@ updater = Updater(token=token, use_context=True)
 dispatcher = updater.dispatcher
 
 
-def sql_conn():
-    conn = sqlite3.connect("game_data.db")
-    cursor = conn.cursor()
-    return cursor, conn
-
-
 # global vars
 parameters = {}
 sub_param = {}
@@ -29,35 +23,6 @@ chat_id = 0
 
 second_coefficient = 0
 
-
-def init_db():
-    cursor, conn = sql_conn()
-    cursor.execute('DROP TABLE parameters')
-    conn.commit()
-    cursor.execute('DROP TABLE flags')
-    conn.commit()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS parameters
-                    (chat_id INTEGER, 
-                    data text, 
-                    value INTEGER)
-                   ''')
-    conn.commit()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS flags
-                        (chat_id INTEGER, 
-                        shields_flag INTEGER,
-                        helm_flag INTEGER, 
-                        phasers_flag INTEGER,
-                        lrs_flag INTEGER,
-                        helm INTEGER,
-                        wrap INTEGER,
-                        torpedoes INTEGER)
-                       ''')
-    conn.commit()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS tst
-                            (chat_id INTEGER, 
-                            shields_flag INTEGER)
-                           ''')
-    conn.commit()
 
 
 def rand_sleep():
@@ -690,21 +655,21 @@ def helm(galaxy, sector, energy, cur_sec, epos, stardate, helm_, warp_):
                         # sector + 1 to moove right
                         # sector - 8 to moove up
                         # sector + 8 to moove down
-                        # print('old sector ', sector)
                         # sx = 8 * int(horiz / 8)
                         # sy = int(vert / 8)
                         # sector = join(sector + sx + sy)
+                        vert_moove_coefficient = 0
+                        horiz_moove_coefficient = 0
                         if vert < 0:
-                            vert_moove_cooficent = -1
+                            vert_moove_coefficient = -1
                         elif vert > 7:
-                            vert_moove_cooficent = 1
+                            vert_moove_coefficient = 1
                         if horiz < 0:
-                            horiz_moove_cooficent = -8
+                            horiz_moove_coefficient = -8
                         elif horiz < 7:
-                            horiz_moove_cooficent = 8
-                        sector = join(sector + vert_moove_cooficent + horiz_moove_cooficent)
+                            horiz_moove_coefficient = 8
+                        sector = join(sector + vert_moove_coefficient + horiz_moove_coefficient)
 
-                        print('new sector ', sector)
                     else:
                         # If we are in the original sector we can't go through
                         # solid objects! So reset course postion 1 click
@@ -969,5 +934,4 @@ def showhelp():
 ]]
 
 if __name__ == '__main__':
-    init_db()
     updater.start_polling()
