@@ -6,4 +6,10 @@ services:
         build:
             context: .
             dockerfile: ./Dockerfile
+        links:
+            - mongo
+        restart: always
+
+    mongo:
+        image: mongo:3.6
         restart: always
