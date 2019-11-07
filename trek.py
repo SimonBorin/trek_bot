@@ -22,8 +22,6 @@ collection = db.user_data_collection
 parameters_db = db.parameters
 sub_param_db = db.sub_param
 
-second_coefficient = 0
-
 
 def rand_sleep():
     rand_sleep = random.uniform(0.3, 1)
@@ -50,7 +48,7 @@ def start_game(update, context):
     # main()
     blurb_msg = blurb()
     # Set up a random stardate
-    stardate = float(random.randrange(1000, 1500, 1))
+    stardate = round(float(random.randrange(1000, 1500, 1)),2)
     # Enterprise starts with 3,000 units of energy, 15 torpedoes and 1,000
     # units of energy in its shields
     energy = 3000
@@ -109,15 +107,6 @@ def start_game(update, context):
         sub_param_db.update_one({'_id': chat_id}, {"$set": sub_param4db}, upsert=True)
     except Exception as e:
         print('error mongo! chat_id = ', chat_id, '\nerror = ', e)
-    if klingons > 0 and energy > 0:
-        # Command
-        # 1 = Helm
-        # 2 = Long range scan
-        # 3 = Phasers
-        # 4 = Photon torpedoes
-        # 5 = Shields
-        # 6 = Resign
-        print('Command (1-6, 0 for help)? ')
     context.bot.send_message(chat_id=update.effective_chat.id, text=blurb_msg, parse_mode=telegram.ParseMode.MARKDOWN)
     time.sleep(rand_sleep())
     context.bot.send_message(chat_id=update.effective_chat.id, text=srs_map, parse_mode=telegram.ParseMode.MARKDOWN)
@@ -166,7 +155,6 @@ def bot_phasers(update, context):
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'phasers_flag': 1}}, upsert=True)
     context.bot.send_message(chat_id=update.effective_chat.id, text=' ``` \nPhaser energy? ``` ',
                              parse_mode=telegram.ParseMode.MARKDOWN)
-    print('Phaser energy? ')
 
 
 def bot_torpedoes(update, context):
@@ -183,7 +171,6 @@ def bot_shields(update, context):
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'shields_flag': 1}}, upsert=True)
     context.bot.send_message(chat_id=update.effective_chat.id, text=' ``` \nEnergy to shields? ``` ',
                              parse_mode=telegram.ParseMode.MARKDOWN)
-    print('Energy to shields? ')
 
 
 def bot_resign(update, context):
@@ -196,7 +183,6 @@ def bot_resign(update, context):
 def bot_sub_command(update, context):
     chat_id = update.effective_chat.id
     bot_sub_command_ = update.message.text
-    # print('debug text',update.message.text)
 
     params = parameters_db.find_one({'_id': chat_id})
     klingons = params['klingons']
@@ -239,8 +225,6 @@ def bot_sub_command(update, context):
             if not flag_attack:
                 context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
                                          parse_mode=telegram.ParseMode.MARKDOWN)
-            time.sleep(rand_sleep())
-            print('Command (1-6, 0 for help)? ')
 
 
 
@@ -250,7 +234,6 @@ def bot_sub_command(update, context):
             params['shields'] = shields
             params['energy'] = energy
             params['current_sector'] = current_sector
-            # print('debug phasers()\nshields = ', shields, '\nks = ',ks)
             context.bot.send_message(chat_id=update.effective_chat.id, text=message,
                                      parse_mode=telegram.ParseMode.MARKDOWN)
             if ks < x:
@@ -266,7 +249,6 @@ def bot_sub_command(update, context):
                 params['x'] = x
             # Do we still have shields left?
             if shields < 0:
-                print("Enterprise dead in space")
                 energy = 0
                 params['energy'] = energy
                 context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nEnterprise dead in space ```',
@@ -286,7 +268,6 @@ def bot_sub_command(update, context):
                                          parse_mode=telegram.ParseMode.MARKDOWN)
                 time.sleep(rand_sleep())
             sub_params['phasers_flag'] = 0
-            print('Command (1-6, 0 for help)? ')
             parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
             sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
             flag_attack = atack(update, context)
@@ -307,7 +288,6 @@ def bot_sub_command(update, context):
         elif sub_params['wrap'] == 1:
             wrap_ = int(bot_sub_command_)
             helm_ = params['helm']
-            # print(f'debug \nwrap {wrap_}\nhelm {helm_}')
             new_sector, energy, ent_position, stardate, msg = helm(galaxy, sector, energy, current_sector, ent_position,
                                                                    stardate, helm_, wrap_)
             context.bot.send_message(chat_id=update.effective_chat.id, text=msg, parse_mode=telegram.ParseMode.MARKDOWN)
@@ -352,7 +332,7 @@ def bot_sub_command(update, context):
             parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
             sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
             flag_attack = atack(update, context)
-            if flag_attack == False:
+            if not flag_attack:
                 context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
                                          parse_mode=telegram.ParseMode.MARKDOWN)
             time.sleep(rand_sleep())
@@ -393,12 +373,10 @@ def bot_sub_command(update, context):
                 context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
                                          parse_mode=telegram.ParseMode.MARKDOWN)
         else:
-            print("Command not recognised captain")
             context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand not recognised captain ``` ',
                                      parse_mode=telegram.ParseMode.MARKDOWN)
 
     else:
-        print("Command not recognised captain")
         context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand not recognised captain ``` ',
                                  parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -436,23 +414,19 @@ def atack(update, context):
     attack = False
     if condition == "Red":
         if random.randint(1, 9) < 6:
-            print("Red alert - Klingons attacking!")
             msg1 = '``` \nRed alert - Klingons attacking!\n ```'
             context.bot.send_message(chat_id=update.effective_chat.id, text=msg1,
                                      parse_mode=telegram.ParseMode.MARKDOWN)
             time.sleep(rand_sleep())
-            time.sleep(0.5 * second_coefficient)
             damage = x * random.randint(1, 50)
             shields = shields - damage
             params['shields'] = shields
-            print("Hit on shields: ", damage, " energy units")
             msg2 = f'``` \nHit on shields: {damage} energy units\n ```'
             context.bot.send_message(chat_id=update.effective_chat.id, text=msg2,
                                      parse_mode=telegram.ParseMode.MARKDOWN)
             time.sleep(rand_sleep())
             # Do we still have shields left?
             if shields < 0:
-                print("Enterprise dead in space")
                 msg3 = '``` \nEnterprise dead in space\n ```'
                 context.bot.send_message(chat_id=update.effective_chat.id, text=msg3,
                                          parse_mode=telegram.ParseMode.MARKDOWN)
@@ -476,19 +450,6 @@ def atack(update, context):
 
 
 def status(sector, stardate, condition, energy, torpedoes, shields, klingons):
-    time.sleep(0.2 * second_coefficient)
-    print("\nStardate:           ", stardate)
-    time.sleep(0.2 * second_coefficient)
-    print("Condition:          ", condition)
-    time.sleep(0.2 * second_coefficient)
-    print("Energy:             ", energy)
-    time.sleep(0.2 * second_coefficient)
-    print("Photon torpedoes:   ", torpedoes)
-    time.sleep(0.2 * second_coefficient)
-    print("Shields:            ", shields)
-    time.sleep(0.2 * second_coefficient)
-    print("Klingons in galaxy: ", klingons, "\n")
-    time.sleep(0.2 * second_coefficient)
     status_msg = f''' ```
 Stardate:           {stardate}
 Condition:          {condition}
@@ -502,20 +463,6 @@ Klingons in galaxy: {klingons}
 
 
 def blurb():
-    print("\nSpace ... the final frontier.")
-
-    time.sleep(1.5 * second_coefficient)
-    print("These are the voyages of the starship Enterprise")
-    print("Its five year mission ...")
-
-    time.sleep(1.5 * second_coefficient)
-    print("... to boldly go where no-one has gone before")
-
-    time.sleep(1.5 * second_coefficient)
-    print("You are Captain Kirk.")
-    print("Your mission is to destroy all of the Klingons in the galaxy.")
-
-    time.sleep(2.5 * second_coefficient)
     start_message = ''' ```
 Space ... the final frontier.
 These are the voyages of the starship Enterprise
@@ -529,9 +476,6 @@ Your mission is to destroy all of the Klingons in the galaxy.
 
 
 def promotion():
-    print("\nYou have successfully completed your mission!")
-    print("The federation has been saved.")
-    print("You have been promoted to Admiral Kirk.")
     promotion_msg = ''' ``` 
 You have successfully completed your mission!
 The federation has been saved.
@@ -541,7 +485,6 @@ You have been promoted to Admiral Kirk.
 
 
 def lose():
-    print("\nYou are relieved of duty.")
     lose = "```\nYou are relieved of duty. ```"
     return lose
 
@@ -578,7 +521,6 @@ def init(klingons, bases, stars, eposition):
         if current_sector[position] == 0:
             current_sector[position] = -200
             klingons = klingons - 1
-    print('stars - ', stars)
     return current_sector
 
 
@@ -592,26 +534,18 @@ def srs(current_sector, ent_pos):
     local_srs_map = "```"
     for i in range(0, 64):
         if i % 8 == 0:
-            print()
             local_srs_map += "\n"
-            time.sleep(0.2 * second_coefficient)
         if current_sector[i] < 0:
             klingons = True
-            print(">!<", end=" ")
             local_srs_map += ">!<"
         elif current_sector[i] == 0:
-            print(" . ", end=" ")
             local_srs_map += " . "
         elif current_sector[i] == 2:
-            print("<O>", end=" ")
             local_srs_map += "<O>"
         elif current_sector[i] == 3:
-            print(" * ", end=" ")
             local_srs_map += " * "
         else:
-            print("-O-", end=" ")
             local_srs_map += "-O-"
-    print()
     # map = ''
     # Work out condition
     if klingons == False:
@@ -631,8 +565,6 @@ def srs(current_sector, ent_pos):
 
     local_srs_map += "\n```"
     srs_map = local_srs_map
-    # print('Thi is debug msg to check map')
-    # print(srs_map)
     return condition, srs_map
 
 
@@ -650,10 +582,6 @@ def helm(galaxy, sector, energy, cur_sec, epos, stardate, helm_, warp_):
         hinc, vinc = calcvector(direction)
         # How far do we need to move?
         warp = int(warp_)
-        # print(f'horiz - {horiz}')
-        # print(f'vert - {vert}')
-        # If warp selected is in legal range move Enterprise
-        # print(f'horiz - {horiz}\nvert - {vert}\nhinc - {hinc}\nvinc - {vinc}\n dir - {direction}\nwrap - {warp}')
         if warp >= 1 and warp <= 63:
             # Check there is sufficient energy
             if warp <= energy:
@@ -662,7 +590,7 @@ def helm(galaxy, sector, energy, cur_sec, epos, stardate, helm_, warp_):
                 # Remove Enterprise from current position
                 cur_sec[epos] = 0
                 # Calculate the new stardate
-                stardate = stardate + (0.1 * warp)
+                stardate = round((stardate + (0.1 * warp)), 2)
                 # For the moment, assume movement leaves us in original sector
                 out = False
                 # Move the Enterprise warp units in the specified direction
@@ -679,9 +607,6 @@ def helm(galaxy, sector, energy, cur_sec, epos, stardate, helm_, warp_):
                         # sector + 1 to moove right
                         # sector - 8 to moove up
                         # sector + 8 to moove down
-                        # sx = 8 * int(horiz / 8)
-                        # sy = int(vert / 8)
-                        # sector = join(sector + sx + sy)
                         vert_moove_coefficient = 0
                         horiz_moove_coefficient = 0
                         if vert < 0:
@@ -710,43 +635,24 @@ def helm(galaxy, sector, energy, cur_sec, epos, stardate, helm_, warp_):
                     msg = '``` \nCalculateing ```'
 
             else:
-                print("Too little energy left. Only ", energy, " units remain")
                 msg = f'``` \nToo little energy left. Only {energy} units remain\n ```'
         else:
-            print("The engines canna take it, captain!")
             msg = '``` \nThe engines canna take it, captain!\n ```'
     else:
-        print("That's not a direction the Enterprise can go in, captain!")
         msg = '``` \nThat`s not a direction the Enterprise can go in, captain!\n ```'
-    print(f'sector - {sector}')
-    print(f'energy - {energy}')
-    print(f'epos - {epos}')
-    print(f'stardate - {stardate}')
-    print(f'msg - {msg}')
     return sector, energy, epos, stardate, msg
 
 
 def lrs(galaxy, sector):
     lrs_out = '``` \n'
-    # Print out the klingons/starbase/stars values from the
-    # neighbouring eight sectors (and this one)
-    time.sleep(0.2 * second_coefficient)
-    print()
     for i in range(-8, 9, 8):
         for j in range(-1, 2):
             # Join the ends of the galaxy together
             sec = join(sector + j + i)
             for x in galaxy[sec]:
-                print(x, end="")
                 lrs_out += str(x)
-            print(end=" ")
             lrs_out += ' '
-            # print("%03d" % galaxy[sec], end=" ")
-            # lrs_out += "%03d " % galaxy[sec]
-            time.sleep(0.2 * second_coefficient)
-        print()
         lrs_out += '\n'
-    print()
     lrs_out += '\n ```'
     return lrs_out
 
@@ -785,19 +691,14 @@ def phasers(condition, shields, energy, sector, epos, ksec, bot_sub_command_):
                         sector[i] = 0
                         # Decrement sector klingons
                         ksec = int(ksec - 1)
-                        print("Klingon destroyed!")
                         message += 'Klingon destroyed!\n'
-                        time.sleep(0.2 * second_coefficient)
                     else:
                         # We have a hit on Enterprise's shields if not docked
                         if condition != "Docked":
                             damage = int(power / dist)
                             shields = shields - damage
-                            print("Hit on shields: ", damage, " energy units")
                             message += f'Hit on shields: {damage} energy units\n'
-                            time.sleep(0.2 * second_coefficient)
     else:
-        print("Not enough energy, Captain!")
         message += 'Not enough energy, Captain!'
     message += '```'
     return shields, energy, sector, ksec, message
@@ -805,12 +706,10 @@ def phasers(condition, shields, energy, sector, epos, ksec, bot_sub_command_):
 
 def photontorpedoes(torpedoes, sector, epos, ksec, direction_):
     if torpedoes < 1:
-        print("No photon torpedoes left, captain!")
         msg = '``` \nNo photon torpedoes left, captain! ```'
     else:
         direction = int(direction_)
         if 1 <= direction <= 9 and direction != 5:
-            time.sleep(0.2 * second_coefficient)
             # Work out the horizontal and vertical co-ordinates
             # of the Enterprise in the current sector
             # 0,0 is top left and 7,7 is bottom right
@@ -828,7 +727,6 @@ def photontorpedoes(torpedoes, sector, epos, ksec, direction_):
                 # Is the torpedo still in the sector?
                 if vert < 0 or vert > 7 or horiz < 0 or horiz > 7:
                     out = True
-                    print("Torpedo missed")
                     msg = '``` \nTorpedo missed ```'
                 else:
                     # Have we hit an object?
@@ -837,24 +735,20 @@ def photontorpedoes(torpedoes, sector, epos, ksec, direction_):
                         out = True
                         sector[vert + 8 * horiz] = 0
                         energy = 0
-                        print("Starbase destroyed")
                         msg = '``` \nStarbase destroyed ```'
                     elif sector[vert + 8 * horiz] == 3:
                         # Shooting a torpedo into a star has no effect
                         out = True
-                        print("Torpedo missed")
                         msg = '``` \nTorpedo missed ```'
                     elif sector[vert + 8 * horiz] < 0:
                         # Hit and destroyed a Klingon!
                         out = True
                         sector[vert + 8 * horiz] = 0
                         ksec = ksec - 1
-                        print("Klingon destroyed!")
                         msg = '``` \nKlingon destroyed! ```'
             # One fewer torpedo
             torpedoes = torpedoes - 1
         else:
-            print("Your command is not logical, Captain.")
             msg = '``` \nYour command is not logical, Captain. ```'
     return torpedoes, sector, ksec, msg
 
@@ -881,7 +775,6 @@ def calcvector(direction):
     # This could be rather more elegant if I didn't bother doing this!
     # However, I'm trying to stay true to the spirit of the original
     # BASIC listing ...
-    # print(f'direction - {direction}')
     if direction == 4:
         direction = 6
     elif direction == 1:
@@ -922,13 +815,6 @@ def join(sector):
 
 
 def showhelp():
-    # Print out the command help
-    print("1 - Helm")
-    print("2 - Long Range Scan")
-    print("3 - Phasers")
-    print("4 - Photon Torpedoes")
-    print("5 - Shields")
-    print("6 - Resign")
     msg = '''
     ```
 1 - Helm
