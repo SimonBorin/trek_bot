@@ -11,11 +11,12 @@ from pymongo import MongoClient
 with open(r'./params.yaml') as file:
     props = yaml.load(file, Loader=yaml.FullLoader)
     token = props['token']
+    mongo = props['mongo']
+    mongo_port = props['mongo_port']
 
 updater = Updater(token=token, use_context=True)
 dispatcher = updater.dispatcher
-client = MongoClient('mongo',27017)
-# client = MongoClient()
+client = MongoClient(mongo, mongo_port)
 db = client.user_database
 collection = db.user_data_collection
 
@@ -48,7 +49,7 @@ def start_game(update, context):
     # main()
     blurb_msg = blurb()
     # Set up a random stardate
-    stardate = round(float(random.randrange(1000, 1500, 1)),2)
+    stardate = round(float(random.randrange(1000, 1500, 1)), 2)
     # Enterprise starts with 3,000 units of energy, 15 torpedoes and 1,000
     # units of energy in its shields
     energy = 3000
@@ -369,7 +370,7 @@ def bot_sub_command(update, context):
             parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
             sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
             flag_attack = atack(update, context)
-            if flag_attack == False:
+            if not flag_attack:
                 context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
                                          parse_mode=telegram.ParseMode.MARKDOWN)
         else:
@@ -775,18 +776,17 @@ def calcvector(direction):
     # This could be rather more elegant if I didn't bother doing this!
     # However, I'm trying to stay true to the spirit of the original
     # BASIC listing ...
-    if direction == 4:
-        direction = 6
-    elif direction == 1:
-        direction = 5
-    elif direction == 2:
-        direction = 4
-    elif direction == 6:
-        direction = 2
-    elif direction == 9:
-        direction = 1
-    elif direction == 8:
-        direction = 0
+    calcvector_dict = {
+        7: 7,
+        4: 6,
+        1: 5,
+        2: 4,
+        3: 3,
+        6: 2,
+        9: 1,
+        8: 0
+    }
+    direction = calcvector_dict[direction]
     # Work out the direction increment vector
     # hinc = horizontal increment
     # vinc = vertical increment
