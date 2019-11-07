@@ -14,8 +14,8 @@ with open(r'./params.yaml') as file:
 
 updater = Updater(token=token, use_context=True)
 dispatcher = updater.dispatcher
-client = MongoClient('mongo',27017)
-# client = MongoClient()
+# client = MongoClient('mongo',27017)
+client = MongoClient()
 db = client.user_database
 collection = db.user_data_collection
 
@@ -679,9 +679,10 @@ def helm(galaxy, sector, energy, cur_sec, epos, stardate, helm_, warp_):
                             vert_moove_coefficient = -1
                         elif vert > 7:
                             vert_moove_coefficient = 1
+
                         if horiz < 0:
                             horiz_moove_coefficient = -8
-                        elif horiz < 7:
+                        elif horiz > 7:
                             horiz_moove_coefficient = 8
                         sector = join(sector + vert_moove_coefficient + horiz_moove_coefficient)
 
