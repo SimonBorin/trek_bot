@@ -96,7 +96,11 @@ def start_game(update, context):
     # Keep going until we have destroyed all the klingons or we run out of
     # energy or we quit
     chat_id = update.effective_chat.id
-    parameters4db = {'_id': chat_id, 'galaxy': galaxy, 'klingons': klingons, 'energy': energy, 'torpedoes': torpedoes,
+    username = update.effective_chat.username
+    first_name = update.effective_chat.first_name
+    last_name = update.effective_chat.last_name
+    parameters4db = {'_id': chat_id, 'username': username, 'first_name': first_name, 'last_name': last_name,
+                     'galaxy': galaxy, 'klingons': klingons, 'energy': energy, 'torpedoes': torpedoes,
                      'shields': shields, 'stardate': stardate, 'sector': sector,
                      'ent_position': ent_position,
                      'x': x, 'y': y, 'z': z, 'current_sector': current_sector, 'condition': condition,
@@ -210,7 +214,7 @@ def bot_sub_command(update, context):
             params['shields'] = shields
             condition, srs_map = srs(current_sector, ent_position)
             params['condition'] = condition
-            params['srs_map'] = srs_map
+            # params['srs_map'] = srs_map
             status_msg = status(sector, stardate, condition, energy, torpedoes, shields, klingons)
 
             context.bot.send_message(chat_id=update.effective_chat.id, text=srs_map,
