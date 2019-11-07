@@ -3,7 +3,6 @@ import re
 import yaml
 import time
 
-
 from telegram.ext import Updater
 from telegram.ext import CommandHandler, MessageHandler, Filters
 import telegram
@@ -15,7 +14,8 @@ with open(r'./params.yaml') as file:
 
 updater = Updater(token=token, use_context=True)
 dispatcher = updater.dispatcher
-client = MongoClient('mongo',27017)
+# client = MongoClient('mongo',27017)
+client = MongoClient()
 db = client.user_database
 collection = db.user_data_collection
 
@@ -23,7 +23,6 @@ parameters_db = db.parameters
 sub_param_db = db.sub_param
 
 second_coefficient = 0
-
 
 
 def rand_sleep():
@@ -45,6 +44,7 @@ def manual(update, context):
     msg = 'https://github.com/SimonBorin/trek_bot/wiki/Manual'
     context.bot.send_message(chat_id=update.effective_chat.id, text=msg)
     time.sleep(rand_sleep())
+
 
 def start_game(update, context):
     # main()
@@ -105,10 +105,10 @@ def start_game(update, context):
     sub_param4db = {'_id': chat_id, 'shields_flag': 0, 'helm': 0, 'phasers_flag': 0, 'lrs_flag': 0, 'helm': 0,
                     'wrap': 0, 'torpedoes': 0}
     try:
-        parameters_db.update_one({ '_id': chat_id },{"$set": parameters4db},upsert=True)
-        sub_param_db.update_one({ '_id': chat_id },{"$set": sub_param4db},upsert=True)
+        parameters_db.update_one({'_id': chat_id}, {"$set": parameters4db}, upsert=True)
+        sub_param_db.update_one({'_id': chat_id}, {"$set": sub_param4db}, upsert=True)
     except Exception as e:
-        print('error mongo! chat_id = ',chat_id,'\nerror = ', e)
+        print('error mongo! chat_id = ', chat_id, '\nerror = ', e)
     if klingons > 0 and energy > 0:
         # Command
         # 1 = Helm
@@ -296,6 +296,8 @@ def bot_sub_command(update, context):
             sub_params['helm'] = 0
             context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nWarp (1-63)? ```',
                                      parse_mode=telegram.ParseMode.MARKDOWN)
+            parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+            sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
 
         elif sub_params['wrap'] == 1:
             wrap_ = int(bot_sub_command_)
@@ -390,7 +392,6 @@ def bot_sub_command(update, context):
         print("Command not recognised captain")
         context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand not recognised captain ``` ',
                                  parse_mode=telegram.ParseMode.MARKDOWN)
-        sub_params['torpedoes'] = 0
 
     if params['energy'] == 0:
         over_msg = ' ```\nGame Over!\nStarting new game ```'
@@ -407,9 +408,6 @@ def bot_sub_command(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id, text=prom_msg,
                                  parse_mode=telegram.ParseMode.MARKDOWN)
         start_game(update, context)
-
-    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-    sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
 
 
 def atack(update, context):
