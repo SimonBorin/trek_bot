@@ -138,6 +138,7 @@ def bot_help(update, context):
 
 def bot_helm(update, context):
     chat_id = update.effective_chat.id
+    drop_subparams_flag(chat_id)
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'helm': 1}}, upsert=True)
 
     context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCourse direction(1-4,5-9)? ```',
@@ -146,6 +147,7 @@ def bot_helm(update, context):
 
 def bot_lrs(update, context):
     chat_id = update.effective_chat.id
+    drop_subparams_flag(chat_id)
     params = parameters_db.find_one({'_id': chat_id})
     sector = params['sector']
     galaxy = params['galaxy']
@@ -160,6 +162,7 @@ def bot_lrs(update, context):
 
 def bot_phasers(update, context):
     chat_id = update.effective_chat.id
+    drop_subparams_flag(chat_id)
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'phasers_flag': 1}}, upsert=True)
     context.bot.send_message(chat_id=update.effective_chat.id, text=' ``` \nPhaser energy? ``` ',
                              parse_mode=telegram.ParseMode.MARKDOWN)
@@ -168,6 +171,7 @@ def bot_phasers(update, context):
 
 def bot_torpedoes(update, context):
     chat_id = update.effective_chat.id
+    drop_subparams_flag(chat_id)
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'torpedoes': 1}}, upsert=True)
     context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nFire in direction(1-4,6-9)? ```',
                              parse_mode=telegram.ParseMode.MARKDOWN)
@@ -175,6 +179,7 @@ def bot_torpedoes(update, context):
 
 def bot_shields(update, context):
     chat_id = update.effective_chat.id
+    drop_subparams_flag(chat_id)
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'shields_flag': 1}}, upsert=True)
     context.bot.send_message(chat_id=update.effective_chat.id, text=' ``` \nEnergy to shields? ``` ',
                              parse_mode=telegram.ParseMode.MARKDOWN)
@@ -387,6 +392,10 @@ def bot_sub_command(update, context):
             if flag_attack == False:
                 context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
                                          parse_mode=telegram.ParseMode.MARKDOWN)
+        else:
+            print("Command not recognised captain")
+            context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand not recognised captain ``` ',
+                                     parse_mode=telegram.ParseMode.MARKDOWN)
 
     else:
         print("Command not recognised captain")
@@ -933,6 +942,14 @@ def showhelp():
 ```
     '''
     return msg
+
+
+def drop_subparams_flag(chat_id):
+    sub_params = sub_param_db.find_one({'_id': chat_id})
+    for i in sub_params:
+        if i != '_id':
+            sub_params[i] = 0
+    sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
 
 
 [dispatcher.add_handler(i) for i in [
