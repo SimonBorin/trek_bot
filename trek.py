@@ -14,8 +14,8 @@ with open(r'./params.yaml') as file:
 
 updater = Updater(token=token, use_context=True)
 dispatcher = updater.dispatcher
-# client = MongoClient('mongo',27017)
-client = MongoClient()
+client = MongoClient('mongo',27017)
+# client = MongoClient()
 db = client.user_database
 collection = db.user_data_collection
 
