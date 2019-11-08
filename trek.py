@@ -3,10 +3,13 @@ import re
 import yaml
 import time
 
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater
-from telegram.ext import CommandHandler, MessageHandler, Filters
+from telegram.ext import CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 import telegram
 from pymongo import MongoClient
+
+from keyboards import main_keyboard, num_keyboard, menu_keyboard, manual_keyboard
 
 with open(r'./params.yaml') as file:
     props = yaml.load(file, Loader=yaml.FullLoader)
@@ -22,7 +25,7 @@ collection = db.user_data_collection
 
 parameters_db = db.parameters
 sub_param_db = db.sub_param
-
+int_command = ''
 
 def rand_sleep():
     rand_sleep = random.uniform(0.3, 1)
@@ -104,7 +107,7 @@ def start_game(update, context):
                      'shields': shields, 'stardate': stardate, 'sector': sector,
                      'ent_position': ent_position,
                      'x': x, 'y': y, 'z': z, 'current_sector': current_sector, 'condition': condition,
-                     'wrap': 0, 'helm': 0}
+                     'wrap': 0, 'helm': 0, 'srs_map': srs_map, 'status_msg': status_msg}
     sub_param4db = {'_id': chat_id, 'shields_flag': 0, 'helm': 0, 'phasers_flag': 0, 'lrs_flag': 0, 'helm': 0,
                     'wrap': 0, 'torpedoes': 0}
     try:
@@ -114,12 +117,14 @@ def start_game(update, context):
         print('error mongo! chat_id = ', chat_id, '\nerror = ', e)
     context.bot.send_message(chat_id=update.effective_chat.id, text=blurb_msg, parse_mode=telegram.ParseMode.MARKDOWN)
     time.sleep(rand_sleep())
-    context.bot.send_message(chat_id=update.effective_chat.id, text=srs_map, parse_mode=telegram.ParseMode.MARKDOWN)
-    time.sleep(rand_sleep())
-    context.bot.send_message(chat_id=update.effective_chat.id, text=status_msg, parse_mode=telegram.ParseMode.MARKDOWN)
-    time.sleep(rand_sleep())
-    context.bot.send_message(chat_id=update.effective_chat.id, text=' ``` \nCommand (1-6, 0 for help)?  ``` ',
-                             parse_mode=telegram.ParseMode.MARKDOWN)
+    # context.bot.send_message(chat_id=update.effective_chat.id, text=srs_map, parse_mode=telegram.ParseMode.MARKDOWN)
+    # time.sleep(rand_sleep())
+    # context.bot.send_message(chat_id=update.effective_chat.id, text=status_msg, parse_mode=telegram.ParseMode.MARKDOWN)
+    # time.sleep(rand_sleep())
+    # context.bot.send_message(chat_id=update.effective_chat.id, text=' ``` \nCommand (1-6, 0 for help)?  ``` ',
+    #                          parse_mode=telegram.ParseMode.MARKDOWN)
+    update.message.reply_text(main_message(),
+                              reply_markup=main_keyboard())
 
 
 def bot_help(update, context):
@@ -137,6 +142,8 @@ def bot_helm(update, context):
 
     context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCourse direction(1-4,5-9)? ```',
                              parse_mode=telegram.ParseMode.MARKDOWN)
+    update.message.reply_text(main_message(),
+                              reply_markup=main_keyboard())
 
 
 def bot_lrs(update, context):
@@ -148,10 +155,25 @@ def bot_lrs(update, context):
     # sector = params['sector']
     # galaxy = params['galaxy']
     lrs_out = lrs(galaxy, sector)
-    context.bot.send_message(chat_id=update.effective_chat.id, text=lrs_out, parse_mode=telegram.ParseMode.MARKDOWN)
-    time.sleep(rand_sleep())
-    context.bot.send_message(chat_id=update.effective_chat.id, text=' ``` \nCommand (1-6, 0 for help)?  ``` ',
-                             parse_mode=telegram.ParseMode.MARKDOWN)
+    # context.bot.send_message(chat_id=update.effective_chat.id, text=lrs_out, parse_mode=telegram.ParseMode.MARKDOWN)
+    # time.sleep(rand_sleep())
+    # context.bot.send_message(chat_id=update.effective_chat.id, text=' ``` \nCommand (1-6, 0 for help)?  ``` ',
+    #                          parse_mode=telegram.ParseMode.MARKDOWN)
+    # update.message.reply_text(main_message(),
+    #                           reply_markup=main_keyboard())
+    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
+                                  text=main_message(lrs_out), reply_markup=main_keyboard(),
+                                  parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+def bot_srs(update, context):
+    chat_id = update.effective_chat.id
+    drop_subparams_flag(chat_id)
+    params = parameters_db.find_one({'_id': chat_id})
+    srs = f"{params['srs_map']}\n{params['status_msg']}"
+    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
+                                  text=main_message(srs), reply_markup=main_keyboard(),
+                                  parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 def bot_phasers(update, context):
@@ -842,6 +864,113 @@ def drop_subparams_flag(chat_id):
     sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
 
 
+############################ Keyboards #########################################
+def main_menu_keyboard():
+    keyboard = [[InlineKeyboardButton('Start', callback_data='m1')],
+                [InlineKeyboardButton('Shields', callback_data='m2')],
+                [InlineKeyboardButton('Help', callback_data='m3')]]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def shields_keyboard():
+    keyboard = [[InlineKeyboardButton('Submenu 1-1', callback_data='m1_1')],
+                [InlineKeyboardButton('Submenu 1-2', callback_data='m1_2')],
+                [InlineKeyboardButton('Main menu', callback_data='main')]]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def main_menu(update, context):
+    query = update.callback_query
+    msg = '*Main Menu*'
+    context.bot.edit_message_text(chat_id=query.message.chat_id,
+                                  message_id=update.callback_query.message.message_id,
+                                  text=main_message(msg),
+                                  reply_markup=menu_keyboard(),
+                                  parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+def num_menu(update, context):
+    query = update.callback_query
+    print(update.callback_query.data)
+    input = update.callback_query.data
+    pattern = re.compile("^\d*$")
+    global int_command
+    if pattern.match(input):
+        int_command += input
+    msg = f'Your command:{int_command}'
+    print(msg)
+    chat_id = query.message.chat_id
+    sub_params = sub_param_db.find_one({'_id': chat_id})
+    params = parameters_db.find_one({'_id': chat_id})
+    if sub_params['helm']==1:
+        params['helm']=int(int_command)
+
+    elif sub_params['wrap']==1:
+        params['wrap'] = int(int_command)
+
+    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+
+    context.bot.edit_message_text(chat_id=query.message.chat_id,
+                                  message_id=update.callback_query.message.message_id,
+                                  text=main_message(msg),
+                                  reply_markup=num_keyboard(),
+                                  parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+def num_command(update, context):
+    query = update.callback_query
+    chat_id = query.message.chat_id
+    sub_params = sub_param_db.find_one({'_id': chat_id})
+    global int_command
+    if  sub_params['helm'] == 1:
+        msg='Enter wrap Coefficient'
+        keyboard = num_keyboard()
+        sub_param_db.update_one({'_id': chat_id}, {"$set": {'helm': 0}}, upsert=True)
+        int_command=''
+
+    elif sub_params['wrap'] == 1:
+        msg='Calculateing'
+        keyboard = main_keyboard()
+        sub_param_db.update_one({'_id': chat_id}, {"$set": {'wrap': 0}}, upsert=True)
+        int_command = ''
+
+    else:
+        msg=''
+        keyboard = main_keyboard()
+
+
+    context.bot.edit_message_text(chat_id=query.message.chat_id,
+                                      message_id=update.callback_query.message.message_id,
+                                      text=main_message(msg),
+                                      reply_markup=keyboard,
+                                      parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+
+
+def helm_menu(update, context):
+    query = update.callback_query
+    chat_id = query.message.chat_id
+    sub_params = sub_param_db.find_one({'_id': chat_id})
+    sub_params['helm'] = 1
+    sub_params['wrap'] = 1
+    sub_param_db.update_one({'_id': chat_id}, {"$set":sub_params}, upsert=True)
+
+
+
+    context.bot.edit_message_text(chat_id=query.message.chat_id,
+                                  message_id=query.message.message_id,
+                                  text='Setting Helm Vector',
+                                  reply_markup=num_keyboard(),
+                                  parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+def main_message(update=''):
+    message = '\nWaiting for orders, Capitain!\n'
+    update += message
+    return update
+
+
 [dispatcher.add_handler(i) for i in [
     CommandHandler('info', info),
     CommandHandler('manual', manual),
@@ -853,7 +982,13 @@ def drop_subparams_flag(chat_id):
     CommandHandler(['torpedoes', '4'], bot_torpedoes),
     CommandHandler(['shields', '5'], bot_shields),
     CommandHandler(['resign', '6'], bot_resign),
-    MessageHandler(Filters.all, bot_sub_command)
+    MessageHandler(Filters.all, bot_sub_command),
+    CallbackQueryHandler(bot_lrs, pattern='lrs'),
+    CallbackQueryHandler(bot_srs, pattern='srs'),
+    CallbackQueryHandler(main_menu, pattern='menu'),
+    CallbackQueryHandler(helm_menu, pattern='helm'),
+    CallbackQueryHandler(num_menu, pattern=r'^\d*$'),
+    CallbackQueryHandler(num_command, pattern='enter')
 ]]
 
 if __name__ == '__main__':
