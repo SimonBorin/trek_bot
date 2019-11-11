@@ -28,16 +28,20 @@ def main_keyboard():
 
 
 def num_keyboard():
-    keyboard = [InlineKeyboardButton('1', callback_data='1'),
-                InlineKeyboardButton('2', callback_data='2'),
-                InlineKeyboardButton('3', callback_data='3'),
-                InlineKeyboardButton('4', callback_data='4'),
-                InlineKeyboardButton('5', callback_data='5'),
-                InlineKeyboardButton('6', callback_data='6'),
-                InlineKeyboardButton('7', callback_data='7'),
-                InlineKeyboardButton('8', callback_data='8'),
-                InlineKeyboardButton('9', callback_data='9'),
-                InlineKeyboardButton('0', callback_data='0')]
+    keyboard = [
+        InlineKeyboardButton('7', callback_data='7'),
+        InlineKeyboardButton('8', callback_data='8'),
+        InlineKeyboardButton('9', callback_data='9'),
+        InlineKeyboardButton('4', callback_data='4'),
+        InlineKeyboardButton('5', callback_data='5'),
+        InlineKeyboardButton('6', callback_data='6'),
+        InlineKeyboardButton('1', callback_data='1'),
+        InlineKeyboardButton('2', callback_data='2'),
+        InlineKeyboardButton('3', callback_data='3'),
+        InlineKeyboardButton('\u238b', callback_data='back2main'),
+        InlineKeyboardButton('0', callback_data='0'),
+        InlineKeyboardButton('\u27f5', callback_data='backspace'),
+        ]
 
     footer = InlineKeyboardButton('Enter', callback_data='enter')
     reply_markup = InlineKeyboardMarkup(build_menu(keyboard, n_cols=3,
