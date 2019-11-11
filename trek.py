@@ -107,7 +107,7 @@ def start_game(update, context):
     parameters4db = {'_id': chat_id, 'username': username, 'first_name': first_name, 'last_name': last_name,
                      'galaxy': galaxy, 'klingons': klingons, 'energy': energy, 'torpedoes': torpedoes,
                      'shields': shields, 'stardate': stardate, 'sector': sector,
-                     'ent_position': ent_position,
+                     'ent_position': ent_position, 'attack_msg_out': '',
                      'x': x, 'y': y, 'z': z, 'current_sector': current_sector, 'condition': condition,
                      'wrap': 0, 'helm': 0, 'srs_map': srs_map, 'status_msg': status_msg}
     sub_param4db = {'_id': chat_id, 'shields_flag': 0, 'helm': 0, 'phasers_flag': 0, 'lrs_flag': 0, 'helm': 0,
@@ -276,57 +276,55 @@ def bot_sub_command(update, context):
         #     sub_params['shields_flag'] = 0
         #     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
         #     sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
-        #     flag_attack = atack(update, context)
-        #     if not flag_attack:
+        #     params['attack_msg_out'] = atack(update, context)
+        #     if not params['attack_msg_out']:
         #         context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
         #                                  parse_mode=telegram.ParseMode.MARKDOWN)
 
-        elif sub_params['phasers_flag'] == 1:
-            shields, energy, current_sector, ks, message = phasers(condition, shields, energy, current_sector,
-                                                                   ent_position, x, bot_sub_command_)
-            params['shields'] = shields
-            params['energy'] = energy
-            params['current_sector'] = current_sector
-            context.bot.send_message(chat_id=update.effective_chat.id, text=message,
-                                     parse_mode=telegram.ParseMode.MARKDOWN)
-            if ks < x:
-                # (x-ks) Klingons have been destroyed-update galaxy map
-                # galaxy[sector] = galaxy[sector] - (100 * (x - ks))
-                galaxy[sector][0] = galaxy[sector][0] - (x - ks)
-                params['galaxy'] = galaxy
-                # update total klingons
-                klingons = klingons - (x - ks)
-                params['klingons'] = klingons
-                # update sector klingons
-                x = ks
-                params['x'] = x
-            # Do we still have shields left?
-            if shields < 0:
-                energy = 0
-                params['energy'] = energy
-                context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nEnterprise dead in space ```',
-                                         parse_mode=telegram.ParseMode.MARKDOWN)
-                time.sleep(rand_sleep())
-            else:
-                condition, srs_map = srs(current_sector, ent_position)
-                params['condition'] = condition
-                status_msg = status(sector, stardate, condition, energy, torpedoes, shields, klingons)
-                context.bot.send_message(chat_id=update.effective_chat.id, text=srs_map,
-                                         parse_mode=telegram.ParseMode.MARKDOWN)
-                time.sleep(rand_sleep())
-                context.bot.send_message(chat_id=update.effective_chat.id, text=status_msg,
-                                         parse_mode=telegram.ParseMode.MARKDOWN)
-                time.sleep(rand_sleep())
-                context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
-                                         parse_mode=telegram.ParseMode.MARKDOWN)
-                time.sleep(rand_sleep())
-            sub_params['phasers_flag'] = 0
-            parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-            sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
-            flag_attack = atack(update, context)
-            if flag_attack == False:
-                context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
-                                         parse_mode=telegram.ParseMode.MARKDOWN)
+        # elif sub_params['phasers_flag'] == 1:
+        #     shields, energy, current_sector, ks, message = phasers(condition, shields, energy, current_sector,
+        #                                                            ent_position, x, bot_sub_command_)
+        #     params['shields'] = shields
+        #     params['energy'] = energy
+        #     params['current_sector'] = current_sector
+        #     context.bot.send_message(chat_id=update.effective_chat.id, text=message,
+        #                              parse_mode=telegram.ParseMode.MARKDOWN)
+        #     if ks < x:
+        #         # (x-ks) Klingons have been destroyed-update galaxy map
+        #         # galaxy[sector] = galaxy[sector] - (100 * (x - ks))
+        #         galaxy[sector][0] = galaxy[sector][0] - (x - ks)
+        #         params['galaxy'] = galaxy
+        #         # update total klingons
+        #         klingons = klingons - (x - ks)
+        #         params['klingons'] = klingons
+        #         # update sector klingons
+        #         x = ks
+        #         params['x'] = x
+        #     # Do we still have shields left?
+        #     if shields < 0:
+        #         energy = 0
+        #         params['energy'] = energy
+        #         context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nEnterprise dead in space ```',
+        #                                  parse_mode=telegram.ParseMode.MARKDOWN)
+        #         time.sleep(rand_sleep())
+        #     else:
+        #         condition, srs_map = srs(current_sector, ent_position)
+        #         params['condition'] = condition
+        #         status_msg = status(sector, stardate, condition, energy, torpedoes, shields, klingons)
+        #         context.bot.send_message(chat_id=update.effective_chat.id, text=srs_map,
+        #                                  parse_mode=telegram.ParseMode.MARKDOWN)
+        #         time.sleep(rand_sleep())
+        #         context.bot.send_message(chat_id=update.effective_chat.id, text=status_msg,
+        #                                  parse_mode=telegram.ParseMode.MARKDOWN)
+        #         time.sleep(rand_sleep())
+        #         context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
+        #                                  parse_mode=telegram.ParseMode.MARKDOWN)
+        #         time.sleep(rand_sleep())
+        #     sub_params['phasers_flag'] = 0
+        #     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+        #     sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
+        #     params['attack_msg_out'] = attack(update, context)
+        #
 
 
         elif sub_params['helm'] == 1:
@@ -385,47 +383,47 @@ def bot_sub_command(update, context):
             # sub_params['wrap'] = 0
             # parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
             # sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
-            # flag_attack = atack(update, context)
-            # if not flag_attack:
+            # params['attack_msg_out'] = atack(update, context)
+            # if not params['attack_msg_out']:
             #     context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
             #                              parse_mode=telegram.ParseMode.MARKDOWN)
             # time.sleep(rand_sleep())
 
 
-        elif sub_params['torpedoes'] == 1:
-            direction = int(bot_sub_command_)
-            torpedoes, current_sector, ks, msg = photontorpedoes(torpedoes, current_sector, ent_position, x, direction)
-            params['torpedoes'] = torpedoes
-            params['current_sector'] = current_sector
-            # A Klingon has been destroyed-update galaxy map
-            if ks < x:
-                # galaxy[sector] = galaxy[sector] - 100
-                galaxy[sector][0] = galaxy[sector][0] - 1
-                # update total klingons
-                klingons = klingons - (x - ks)
-                # update sector klingons
-                x = ks
-                params['galaxy'] = galaxy
-                params['klingons'] = klingons
-                params['x'] = x
-            condition, srs_map = srs(current_sector, ent_position)
-            status_msg = status(sector, stardate, condition, energy, torpedoes, shields, klingons)
-            params['condition'] = condition
-            context.bot.send_message(chat_id=update.effective_chat.id, text=msg, parse_mode=telegram.ParseMode.MARKDOWN)
-            time.sleep(rand_sleep())
-            context.bot.send_message(chat_id=update.effective_chat.id, text=srs_map,
-                                     parse_mode=telegram.ParseMode.MARKDOWN)
-            time.sleep(rand_sleep())
-            context.bot.send_message(chat_id=update.effective_chat.id, text=status_msg,
-                                     parse_mode=telegram.ParseMode.MARKDOWN)
-            time.sleep(rand_sleep())
-            sub_params['torpedoes'] = 0
-            parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-            sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
-            flag_attack = atack(update, context)
-            if not flag_attack:
-                context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
-                                         parse_mode=telegram.ParseMode.MARKDOWN)
+        # elif sub_params['torpedoes'] == 1:
+        #     direction = int(bot_sub_command_)
+        #     torpedoes, current_sector, ks, msg = photontorpedoes(torpedoes, current_sector, ent_position, x, direction)
+        #     params['torpedoes'] = torpedoes
+        #     params['current_sector'] = current_sector
+        #     # A Klingon has been destroyed-update galaxy map
+        #     if ks < x:
+        #         # galaxy[sector] = galaxy[sector] - 100
+        #         galaxy[sector][0] = galaxy[sector][0] - 1
+        #         # update total klingons
+        #         klingons = klingons - (x - ks)
+        #         # update sector klingons
+        #         x = ks
+        #         params['galaxy'] = galaxy
+        #         params['klingons'] = klingons
+        #         params['x'] = x
+        #     condition, srs_map = srs(current_sector, ent_position)
+        #     status_msg = status(sector, stardate, condition, energy, torpedoes, shields, klingons)
+        #     params['condition'] = condition
+        #     context.bot.send_message(chat_id=update.effective_chat.id, text=msg, parse_mode=telegram.ParseMode.MARKDOWN)
+        #     time.sleep(rand_sleep())
+        #     context.bot.send_message(chat_id=update.effective_chat.id, text=srs_map,
+        #                              parse_mode=telegram.ParseMode.MARKDOWN)
+        #     time.sleep(rand_sleep())
+        #     context.bot.send_message(chat_id=update.effective_chat.id, text=status_msg,
+        #                              parse_mode=telegram.ParseMode.MARKDOWN)
+        #     time.sleep(rand_sleep())
+        #     sub_params['torpedoes'] = 0
+        #     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+        #     sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
+        #     params['attack_msg_out'] = attack(update, context)
+        #     if not params['attack_msg_out']:
+        #         context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
+        #                                  parse_mode=telegram.ParseMode.MARKDOWN)
         else:
             context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand not recognised captain ``` ',
                                      parse_mode=telegram.ParseMode.MARKDOWN)
@@ -474,7 +472,7 @@ def shields_compute(update, context, input):
     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
     sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
 
-    flag_attack = atack(update, context)
+    params['attack_msg_out'] = attack(update, context)
 
 
 def phasers_compute(update, context, input):
@@ -514,8 +512,8 @@ def phasers_compute(update, context, input):
         #                          parse_mode=telegram.ParseMode.MARKDOWN)
     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
     sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
-    flag_attack = atack(update, context)
-    # if flag_attack == False:
+    params['attack_msg_out'] = attack(update, context)
+    # if params['attack_msg_out'] == False:
     #     context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
     #                              parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -547,7 +545,7 @@ def torpedoes_compute(update, context, input):
     # time.sleep(rand_sleep())
     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
     # sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
-    flag_attack = atack(update, context)
+    params['attack_msg_out'] = attack(update, context)
     # if not flag_attack:
     #     context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCommand (1-6, 0 for help)? ```',
     #                              parse_mode=telegram.ParseMode.MARKDOWN)
@@ -597,7 +595,7 @@ def helm_out(update, context):
     #                          parse_mode=telegram.ParseMode.MARKDOWN)
     # time.sleep(rand_sleep())
     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-    flag_attack = atack(update, context)
+    params['attack_msg_out'] = attack(update, context)
 
     srs_msg = f"{params['srs_map']}\n{params['status_msg']}"
     # context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
@@ -605,7 +603,7 @@ def helm_out(update, context):
     #                               parse_mode=telegram.ParseMode.MARKDOWN)
 
 
-def atack(update, context):
+def attack(update, context):
     chat_id = update.effective_chat.id
     params = parameters_db.find_one({'_id': chat_id})
 
@@ -655,11 +653,11 @@ def atack(update, context):
                 # context.bot.send_message(chat_id=update.effective_chat.id, text=status_msg,
                 #                          parse_mode=telegram.ParseMode.MARKDOWN)
                 time.sleep(rand_sleep())
-    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
-                                  text=main_message(attack_mag), reply_markup=main_keyboard(),
-                                  parse_mode=telegram.ParseMode.MARKDOWN)
+    # context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
+    #                               text=main_message(attack_mag), reply_markup=main_keyboard(),
+    #                               parse_mode=telegram.ParseMode.MARKDOWN)
+    params['attack_msg_out'] = attack_mag
     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-    return attack
 
 
 def status(sector, stardate, condition, energy, torpedoes, shields, klingons):
@@ -1179,10 +1177,16 @@ def num_command(update, context):
         input = params['input']
         params['input'] = 0
         torpedoes_compute(update, context, input)
-
     else:
         msg = ''
         keyboard = main_keyboard()
+
+    params = parameters_db.find_one({'_id': chat_id})
+    if params['attack_msg_out'] != '':
+        msg = params['attack_msg_out']
+        params['attack_msg_out']=''
+        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+
 
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=update.callback_query.message.message_id,
