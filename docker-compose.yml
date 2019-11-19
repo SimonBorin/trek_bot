@@ -1,0 +1,19 @@
+version: "3"
+services:
+
+    StarTrek:
+        image: blooomberg/trek_bot
+        build:
+            context: .
+            dockerfile: ./Dockerfile
+        links:
+            - mongo
+        restart: always
+
+
+    mongo:
+        image: mongo:3.6
+        restart: always
+        ports:
+            - 27017:27017
+
