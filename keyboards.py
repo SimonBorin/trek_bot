@@ -51,7 +51,6 @@ def num_keyboard():
 
 def menu_keyboard():
     keyboard = [
-                [InlineKeyboardButton('Restart', callback_data='restart')],
                 [InlineKeyboardButton('Manual', callback_data='manual')],
                 [InlineKeyboardButton('Info', callback_data='info')],
                 [InlineKeyboardButton('Back', callback_data='back2main')]
@@ -61,13 +60,14 @@ def menu_keyboard():
 
 def manual_keyboard():
     keyboard = [InlineKeyboardButton('Galaxy', callback_data='galaxyInfo'),
-                InlineKeyboardButton('Helm', callback_data='helmInfo'),
-                InlineKeyboardButton('LRS', callback_data='lrsInfo'),
-                InlineKeyboardButton('Phasers', callback_data='phasersInfo'),
-                InlineKeyboardButton('Torpedoes', callback_data='torpedoesInfo'),
-                InlineKeyboardButton('Shields', callback_data='shieldsInfo'),
+                InlineKeyboardButton('Helm', callback_data='1helmInfo'),
+                InlineKeyboardButton('LRS', callback_data='2lrsInfo'),
+                InlineKeyboardButton('SRS', callback_data='3srsinfo'),
+                InlineKeyboardButton('Phasers', callback_data='4phasersInfo'),
+                InlineKeyboardButton('Torpedoes', callback_data='5torpedoesInfo'),
+                InlineKeyboardButton('Shields', callback_data='6shieldsInfo'),
                 InlineKeyboardButton('Back', callback_data='back2menu'),
-                InlineKeyboardButton('Main ', callback_data='main')
+                InlineKeyboardButton('Main ', callback_data='back2main')
                 ]
     reply_markup = InlineKeyboardMarkup(build_menu(keyboard, n_cols=2))
     return reply_markup

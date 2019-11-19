@@ -34,13 +34,101 @@ def rand_sleep():
 
 
 def info(update, context):
-    info_message = '''
-Thats my boring bot, based on star trek text rpg from 1971.
-https://github.com/SimonBorin/trek_bot/
-@blooomberg
+    info = 'Thats my boring bot, based on star trek text rpg from 1971.\n' \
+            'https://github.com/SimonBorin/trek_bot/\n' \
+            '@blooomberg\n'
+    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
+                                  text=info, reply_markup=menu_keyboard())
+
+def galaxyInfo(update, context):
+    info = '''
+    ```
+    The galaxy is divided into an 8 X 8 quadrant grid,
+and each quadrant is further divided into an 8 x 8 sector grid.
+
+You will be assigned a starting point somewhere in the galaxy to begin a tour of duty as commander of the starship Enterprise.
+Your mission: to seek out and destroy the fleet of Klingon warships which are menacing the United Federation of Planets.
+ ```
 '''
-    context.bot.send_message(chat_id=update.effective_chat.id, text=info_message)
-    time.sleep(rand_sleep())
+    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
+                                  text=info, reply_markup=manual_keyboard(), parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+def helmInfo(update, context):
+    info = '''```
+    Course is in a circular numerical vector          
+arrangement as shown. Integer                        
+values may be used.
+                                   
+  7  8  9                               
+   . . .   
+    ...                                
+4 ---*--- 6    
+    ...                                
+   . . .   
+  1  2  3
+
+    One warp factor is the size of one quadrant.        
+Therefore, to get from quadrant 6x,5y to 5x,5y
+you would use course 4, warp factor 1.
+```'''
+    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
+                                  text=info, reply_markup=manual_keyboard(), parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+def lrsInfo(update, context):
+    info = '''```
+    Shows conditions in space for one quadrant on each side of the Enterprise
+(which is in the middle of the scan). The scan is coded in the form \###\
+where the units digit is the number of stars, the tens digit is the number
+of starbases, and the hundreds digit is the number of Klingons.
+Example - 207 = 2 Klingons, No Starbases, & 7 stars.
+  ```'''
+    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
+                                  text=info, reply_markup=manual_keyboard(), parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+def srsinfo(update, context):
+    info = '''```
+    Symbology on your sensor screen is as follows:
+-O- = Your starship's position
+>!< = Klingon battlecruiser
+<O> = Federation starbase (Refuel/Repair/Re-Arm here)
+ *  = Star 
+  ```'''
+    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
+                                  text=info, reply_markup=manual_keyboard(), parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+def phasersInfo(update, context):
+    info = '''```
+    Allows you to destroy the Klingon Battle Cruisers by zapping them with
+suitably large units of energy to deplete their shield power. (Remember,
+Klingons have phasers, too!)
+     ```'''
+    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
+                                  text=info, reply_markup=manual_keyboard(), parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+def torpedoesInfo(update, context):
+    info = '''```
+    Torpedo course is the same  as used in helm control. If you hit
+the Klingon vessel, he is destroyed and cannot fire back at you. If you
+miss, you are subject to the phaser fire of all other Klingons in the
+quadrant.
+     ```'''
+    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
+                                  text=info, reply_markup=manual_keyboard(), parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+def shieldsInfo(update, context):
+    info = '''```
+    Defines the number of energy units to be assigned to the shields. Energy
+is taken from total ship's energy. Note that the status display total
+energy includes shield energy.
+     ```'''
+    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
+                                  text=info, reply_markup=manual_keyboard(), parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 def manual(update, context):
@@ -92,7 +180,7 @@ def start_game(update, context):
     z = galaxy[sector][2]
     # x, y, z = decode(galaxy[sector])
     # Set up the current sector map
-    # Each sector has 64 positions in which a klingon, starbase, star 
+    # Each sector has 64 positions in which a klingon, starbase, star
     # or the Enterprise may be located in
     current_sector = init(x, y, z, ent_position)
     # Perform a short range scan
@@ -148,7 +236,8 @@ Your mission is to destroy all of the Klingons in the galaxy.
     #                                   text=f'```{out_letter}```',
     #                                   reply_markup=main_keyboard(),
     #                                   parse_mode=telegram.ParseMode.MARKDOWN)
-
+def restart_game(update, context):
+    start_game(update, context)
 
 def bot_help(update, context):
     help_msg = showhelp()
@@ -617,7 +706,6 @@ def attack(update, context):
     torpedoes = params['torpedoes']
     klingons = params['klingons']
     energy = params['energy']
-    attack = False
     attack_mag = ''
     if condition == "Red":
         if random.randint(1, 9) < 6:
@@ -639,7 +727,6 @@ def attack(update, context):
                 #                          parse_mode=telegram.ParseMode.MARKDOWN)
                 time.sleep(rand_sleep())
                 energy = 0
-                attack = True
                 params['energy'] = energy
             else:
                 condition, srs_map = srs(current_sector, ent_position)
@@ -1089,6 +1176,15 @@ def back2main(update, context):
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
+def back2menu(update, context):
+    query = update.callback_query
+    context.bot.edit_message_text(chat_id=query.message.chat_id,
+                                  message_id=update.callback_query.message.message_id,
+                                  text=main_message(),
+                                  reply_markup=menu_keyboard(),
+                                  parse_mode=telegram.ParseMode.MARKDOWN)
+
+
 def num_menu(update, context):
     query = update.callback_query
     print(update.callback_query.data)
@@ -1234,6 +1330,17 @@ def helm_menu(update, context):
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
+def manual_menu(update, context):
+    query = update.callback_query
+    chat_id = query.message.chat_id
+    context.bot.edit_message_text(chat_id=query.message.chat_id,
+                                  message_id=query.message.message_id,
+                                  text=main_message(),
+                                  reply_markup=manual_keyboard(),
+                                  parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+
 def main_message(update=''):
     lenth_keeper = '\n------------------------------------------\n'
     message = 'Waiting for orders, Capitain!'
@@ -1248,7 +1355,7 @@ def main_message(update=''):
 [dispatcher.add_handler(i) for i in [
     CommandHandler('info', info),
     CommandHandler('manual', manual),
-    CommandHandler('start', start_game),
+    CommandHandler(['start','restart'], start_game),
     CommandHandler(['help', '0'], bot_help),
     CommandHandler(['helm', '1'], bot_helm),
     CommandHandler(['lrs', '2'], bot_lrs),
@@ -1267,6 +1374,16 @@ def main_message(update=''):
     CallbackQueryHandler(num_backspace, pattern='backspace'),
     CallbackQueryHandler(phasers_button, pattern='phasers'),
     CallbackQueryHandler(torpedoes_button, pattern='torpedoes'),
+    CallbackQueryHandler(info, pattern='info'),
+    CallbackQueryHandler(manual_menu, pattern='manual'),
+    CallbackQueryHandler(back2menu, pattern='back2menu'),
+CallbackQueryHandler(galaxyInfo, pattern='galaxyInfo'),
+CallbackQueryHandler(helmInfo, pattern='1helmInfo'),
+CallbackQueryHandler(lrsInfo, pattern='2lrsInfo'),
+CallbackQueryHandler(phasersInfo, pattern='4phasersInfo'),
+CallbackQueryHandler(torpedoesInfo, pattern='5torpedoesInfo'),
+CallbackQueryHandler(shieldsInfo, pattern='6shieldsInfo'),
+CallbackQueryHandler(srsinfo, pattern='3srsinfo'),
     CallbackQueryHandler(num_command, pattern='enter')
 ]]
 
