@@ -1,13 +1,10 @@
 import random
 import re
 import yaml
-import time
-
 from telegram.ext import Updater
 from telegram.ext import CommandHandler, CallbackQueryHandler
 import telegram
 from pymongo import MongoClient
-
 from keyboards import main_keyboard, num_keyboard, menu_keyboard, manual_keyboard, restart_keyboard
 
 with open(r'./params.yaml') as file:
@@ -165,7 +162,6 @@ def start_game(update, context, restart_msg=''):
     shields = 0
     # No klingons around ... yet!
     klingons = 0
-
     # The galaxy is divided into 64 sectors. Each sector is represented by one
     # element in the galaxy list. The galaxy list contains a three digit number
     # Hundreds = number of klingons in the sector
@@ -184,7 +180,6 @@ def start_game(update, context, restart_msg=''):
         galaxy.append([x] + [y] + [z])
         # Keep a record of how many klingons are left to be destroyed
         klingons = klingons + x
-
     # Choose the starting sector and position for the Enterprise
     sector = random.randint(0, 63)
     ent_position = random.randint(0, 63)
@@ -220,9 +215,7 @@ def start_game(update, context, restart_msg=''):
         sub_param_db.update_one({'_id': chat_id}, {"$set": sub_param4db}, upsert=True)
     except Exception as e:
         print('error mongo! chat_id = ', chat_id, '\nerror = ', e)
-
     start_msg = restart_msg + blurb_msg + srs_map + status_msg
-
     update.effective_message.reply_text(main_message(start_msg),
                                         reply_markup=main_keyboard(),
                                         parse_mode=telegram.ParseMode.MARKDOWN)
@@ -236,11 +229,10 @@ def bot_helm(update, context):
     chat_id = update.effective_chat.id
     drop_subparams_flag(chat_id)
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'helm': 1}}, upsert=True)
-
-    context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nCourse direction(1-4,5-9)? ```',
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             text='``` \nCourse direction(1-4,5-9)? ```',
                              parse_mode=telegram.ParseMode.MARKDOWN)
-    update.message.reply_text(main_message(),
-                              reply_markup=main_keyboard())
+    update.message.reply_text(main_message(), reply_markup=main_keyboard())
 
 
 def bot_lrs(update, context):
@@ -250,8 +242,10 @@ def bot_lrs(update, context):
     sector = params['sector']
     galaxy = params['galaxy']
     lrs_out = lrs(galaxy, sector)
-    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
-                                  text=main_message(lrs_out), reply_markup=main_keyboard(),
+    context.bot.edit_message_text(chat_id=update.effective_chat.id,
+                                  message_id=update.callback_query.message.message_id,
+                                  text=main_message(lrs_out),
+                                  reply_markup=main_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
@@ -264,8 +258,10 @@ def bot_srs(update, context):
                                   params['torpedoes'],
                                   params['shields'], params['klingons'])
     srs_ = f"{params['srs_map']}{params['status_msg']}"
-    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
-                                  text=main_message(srs_), reply_markup=main_keyboard(),
+    context.bot.edit_message_text(chat_id=update.effective_chat.id,
+                                  message_id=update.callback_query.message.message_id,
+                                  text=main_message(srs_),
+                                  reply_markup=main_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
@@ -273,7 +269,8 @@ def bot_phasers(update, context):
     chat_id = update.effective_chat.id
     drop_subparams_flag(chat_id)
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'phasers_flag': 1}}, upsert=True)
-    context.bot.send_message(chat_id=update.effective_chat.id, text=' ``` \nPhaser energy? ``` ',
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             text=' ``` \nPhaser energy? ``` ',
                              parse_mode=telegram.ParseMode.MARKDOWN)
 
 
@@ -281,7 +278,8 @@ def bot_torpedoes(update, context):
     chat_id = update.effective_chat.id
     drop_subparams_flag(chat_id)
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'torpedoes': 1}}, upsert=True)
-    context.bot.send_message(chat_id=update.effective_chat.id, text='``` \nFire in direction(1-4,6-9)? ```',
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             text='``` \nFire in direction(1-4,6-9)? ```',
                              parse_mode=telegram.ParseMode.MARKDOWN)
 
 
@@ -289,12 +287,14 @@ def bot_shields(update, context):
     chat_id = update.effective_chat.id
     drop_subparams_flag(chat_id)
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'shields_flag': 1}}, upsert=True)
-    context.bot.send_message(chat_id=update.effective_chat.id, text=' ``` \nEnergy to shields? ``` ',
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             text=' ``` \nEnergy to shields? ``` ',
                              parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 def bot_resign(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text=' ``` \nStarting new game ``` ',
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             text=' ``` \nStarting new game ``` ',
                              parse_mode=telegram.ParseMode.MARKDOWN)
     start_game(update, context)
 
@@ -303,8 +303,10 @@ def shields_button(update, context):
     chat_id = update.effective_chat.id
     msg = 'Energy to the shields:'
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'shields_flag': 1}}, upsert=True)
-    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
-                                  text=main_message(msg), reply_markup=num_keyboard(),
+    context.bot.edit_message_text(chat_id=update.effective_chat.id,
+                                  message_id=update.callback_query.message.message_id,
+                                  text=main_message(msg),
+                                  reply_markup=num_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
@@ -317,11 +319,9 @@ def shields_compute(update, context, input):
     params['status_msg'] = status(params['sector'], params['stardate'], params['condition'], params['energy'],
                                   params['torpedoes'],
                                   params['shields'], params['klingons'])
-
     sub_params['shields_flag'] = 0
     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
     sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
-
     attack(update, context)
 
 
@@ -329,7 +329,6 @@ def phasers_compute(update, context, input):
     chat_id = update.effective_chat.id
     params = parameters_db.find_one({'_id': chat_id})
     sub_params = sub_param_db.find_one({'_id': chat_id})
-
     params['shields'], params['energy'], params['current_sector'], params['ks'], params['msg'] = \
         phasers(params['condition'], params['shields'], params['energy'], params['current_sector'],
                 params['ent_position'], params['x'], input)
@@ -341,7 +340,6 @@ def phasers_compute(update, context, input):
         params['klingons'] = params['klingons'] - (params['x'] - params['ks'])
         # update sector klingons
         params['x'] = params['ks']
-
     # Do we still have shields left?
     if params['shields'] < 0:
         params['energy'] = 0
@@ -363,6 +361,8 @@ def torpedoes_compute(update, context, input):
     params['torpedoes'], params['current_sector'], params['ks'], params['msg'] = \
         photontorpedoes(update, context, params['torpedoes'], params['current_sector'], params['ent_position'],
                         params['x'], direction)
+    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+    params = parameters_db.find_one({'_id': chat_id})
     # A Klingon has been destroyed-update galaxy map
     if params['ks'] < params['x']:
         # galaxy[sector] = galaxy[sector] - 100
@@ -407,9 +407,6 @@ def helm_out(update, context):
         params['z'] = z
     # Perform a short range scan after every movement
     condition, srs_map = srs(params['current_sector'], params['ent_position'])
-    # context.bot.send_message(chat_id=update.effective_chat.id, text=srs_map,
-    #                          parse_mode=telegram.ParseMode.MARKDOWN)
-    # time.sleep(rand_sleep())
     params['condition'] = condition
     if condition == "Docked":
         # Reset energy, torpedoes and shields
@@ -418,9 +415,6 @@ def helm_out(update, context):
         params['shields'] = 0
     params['status_msg'] = status(params['sector'], params['stardate'], params['condition'], params['energy'],
                                   params['torpedoes'], params['shields'], params['klingons'])
-    # context.bot.send_message(chat_id=update.effective_chat.id, text=status_msg,
-    #                          parse_mode=telegram.ParseMode.MARKDOWN)
-    # time.sleep(rand_sleep())
     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
     attack(update, context)
 
@@ -456,7 +450,7 @@ def attack(update, context):
             else:
                 condition, srs_map = srs(current_sector, ent_position)
                 params['condition'] = condition
-                status_msg = status(sector, stardate, condition, energy, torpedoes, shields, klingons)
+                # status_msg = status(sector, stardate, condition, energy, torpedoes, shields, klingons)
     params['attack_msg_out'] = attack_mag
     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
 
@@ -491,8 +485,8 @@ def promotion():
     promotion_msg = ''' ``` 
 You have successfully completed your mission!
 The federation has been saved.
-You have been promoted to Admiral Kirk.  
-    '''
+You have been promoted to Admiral Kirk. 
+    ```'''
     return promotion_msg
 
 
@@ -574,7 +568,6 @@ def srs(current_sector, ent_pos):
         if current_sector[starboard] == 2:
             condition = "Docked"
     # Return condition status
-
     local_srs_map += "\n```"
     srs_map = local_srs_map
     return condition, srs_map
@@ -588,9 +581,7 @@ def helm(galaxy, sector, energy, cur_sec, epos, stardate, helm_, warp_):
         # 0,0 is top left and 7,7 is bottom right
         horiz = int(epos / 8)
         vert = epos - (horiz * 8)
-        vert2 = int(epos - (horiz * 8))
         # And calculate the direction component of our course vector
-
         hinc, vinc = calcvector(direction)
         # How far do we need to move?
         warp = int(warp_)
@@ -625,7 +616,6 @@ def helm(galaxy, sector, energy, cur_sec, epos, stardate, helm_, warp_):
                             vert_moove_coefficient = -1
                         elif vert > 7:
                             vert_moove_coefficient = 1
-
                         if horiz < 0:
                             horiz_moove_coefficient = -8
                         elif horiz > 7:
@@ -637,7 +627,6 @@ def helm(galaxy, sector, energy, cur_sec, epos, stardate, helm_, warp_):
                         # solid objects! So reset course postion 1 click
                         # Inefficient - does this for warp steps even if we
                         # can't move.
-
                         if cur_sec[vert + 8 * horiz] != 0:
                             vert = vert - vinc
                             horiz = horiz - hinc
@@ -645,7 +634,6 @@ def helm(galaxy, sector, energy, cur_sec, epos, stardate, helm_, warp_):
                         epos = vert + 8 * horiz
                     i = i + 1
                     msg = '``` \nCalculateing ```'
-
             else:
                 msg = f'``` \nToo little energy left. Only {energy} units remain\n ```'
         else:
@@ -746,9 +734,11 @@ def photontorpedoes(update, context, torpedoes, sector, epos, ksec, direction_):
                         # Oh dear - taking out a starbase ends the game
                         out = True
                         sector[vert + 8 * horiz] = 0
-                        energy = 0
+                        chat_id = update.effective_chat.id
+                        params = parameters_db.find_one({'_id': chat_id})
+                        params['energy'] = 0
+                        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
                         msg = '``` \nStarbase destroyed ```'
-                        gameover(update, context, msg)
                     elif sector[vert + 8 * horiz] == 3:
                         # Shooting a torpedo into a star has no effect
                         out = True
@@ -864,8 +854,10 @@ def phasers_button(update, context):
     chat_id = update.effective_chat.id
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'phasers_flag': 1}}, upsert=True)
     msg = f'Phaser Energy:{int_command}'
-    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
-                                  text=main_message(msg), reply_markup=num_keyboard(),
+    context.bot.edit_message_text(chat_id=update.effective_chat.id,
+                                  message_id=update.callback_query.message.message_id,
+                                  text=main_message(msg),
+                                  reply_markup=num_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
@@ -873,8 +865,10 @@ def torpedoes_button(update, context):
     chat_id = update.effective_chat.id
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'torpedoes': 1}}, upsert=True)
     msg = f'Fire in direction:{int_command}'
-    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
-                                  text=main_message(msg), reply_markup=num_keyboard(),
+    context.bot.edit_message_text(chat_id=update.effective_chat.id,
+                                  message_id=update.callback_query.message.message_id,
+                                  text=main_message(msg),
+                                  reply_markup=num_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
@@ -1011,6 +1005,8 @@ Energy to shields {shields_update}
 
     if params['energy'] == 0:
         gameover(update, context, msg)
+        params['msg'] = ''
+        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
     else:
 
         params = parameters_db.find_one({'_id': chat_id})
@@ -1079,10 +1075,25 @@ def manual_menu(update, context):
 def gameover(update, context, attack_mag):
     query = update.callback_query
     chat_id = query.message.chat_id
-    msg = attack_mag + '''```
+    msg = attack_mag + lose() + '''```
 ╔═╗┌─┐┌┬┐┌─┐  ╔═╗┬  ┬┌─┐┬─┐
 ║ ╦├─┤│││├┤   ║ ║└┐┌┘├┤ ├┬┘
 ╚═╝┴ ┴┴ ┴└─┘  ╚═╝ └┘ └─┘┴└─                                                        
+    ```'''
+
+    context.bot.edit_message_text(chat_id=query.message.chat_id,
+                                  message_id=query.message.message_id,
+                                  text=main_message(msg),
+                                  reply_markup=restart_keyboard(),
+                                  parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+def victory(update, context, attack_mag):
+    query = update.callback_query
+    msg = attack_mag + promotion() + '''```
+╦  ╦┬┌─┐┌┬┐┌─┐┬─┐╦ ╦
+╚╗╔╝││   │ │ │├┬┘╚╦╝
+ ╚╝ ┴└─┘ ┴ └─┘┴└─ ╩                                                        
     ```'''
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=query.message.message_id,
