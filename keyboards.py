@@ -1,4 +1,3 @@
-############################ Keyboards #########################################
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 
 
@@ -51,6 +50,7 @@ def num_keyboard():
 
 def menu_keyboard():
     keyboard = [
+                [InlineKeyboardButton('Restart', callback_data='restart')],
                 [InlineKeyboardButton('Manual', callback_data='manual')],
                 [InlineKeyboardButton('Info', callback_data='info')],
                 [InlineKeyboardButton('Back', callback_data='back2main')]
@@ -71,3 +71,10 @@ def manual_keyboard():
                 ]
     reply_markup = InlineKeyboardMarkup(build_menu(keyboard, n_cols=2))
     return reply_markup
+
+
+def restart_keyboard():
+    keyboard = [
+                [InlineKeyboardButton('Restart', callback_data='restart')]
+                ]
+    return InlineKeyboardMarkup(keyboard)
