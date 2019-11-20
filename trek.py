@@ -5,7 +5,7 @@ from telegram.ext import Updater
 from telegram.ext import CommandHandler, CallbackQueryHandler
 import telegram
 from pymongo import MongoClient
-from keyboards import main_keyboard, num_keyboard, menu_keyboard, manual_keyboard, restart_keyboard
+from keyboards import main_keyboard, num_keyboard, menu_keyboard, manual_keyboard, restart_keyboard, helm_keyboard
 
 with open(r'./params.yaml') as file:
     props = yaml.load(file, Loader=yaml.FullLoader)
@@ -382,7 +382,7 @@ def helm_out(update, context):
     params = parameters_db.find_one({'_id': chat_id})
     new_sector, energy, ent_position, stardate, msg = helm(params['galaxy'], params['sector'], params['energy'],
                                                            params['current_sector'], params['ent_position'],
-                                                           params['stardate'], params['helm'], params['wrap'])
+                                                           params['stardate'], params['helm_dir'], params['wrap'])
     # If we're still in the same sector as before, draw the Enterprise
     params['energy'] = energy
     params['ent_position'] = ent_position
@@ -864,14 +864,13 @@ def phasers_button(update, context):
 
 def torpedoes_button(update, context):
     chat_id = update.effective_chat.id
-    chat_id = update.effective_chat.id
     params = parameters_db.find_one({'_id': chat_id})
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'torpedoes': 1}}, upsert=True)
-    msg = f"Fire in direction:{params['num_input']}"
+    msg = "Fire in direction: "
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
                                   text=main_message(msg),
-                                  reply_markup=num_keyboard(),
+                                  reply_markup=helm_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
@@ -884,7 +883,7 @@ def back2main(update, context):
     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(),
+                                  text=main_message(main_screen(update, context)),
                                   reply_markup=main_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -1073,7 +1072,35 @@ def helm_menu(update, context):
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=query.message.message_id,
                                   text=main_message(msg),
-                                  reply_markup=num_keyboard(),
+                                  reply_markup=helm_keyboard(),
+                                  parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+def helm_direction(update, context):
+    query = update.callback_query
+    chat_id = query.message.chat_id
+    params = parameters_db.find_one({'_id': chat_id})
+    sub_params = sub_param_db.find_one({'_id': chat_id})
+    params['helm_dir'] = int(update.callback_query.data[-1:])
+    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+    keyboard = main_keyboard()
+    msg = ''
+    if sub_params['helm'] == 1:
+        keyboard = num_keyboard()
+        msg = 'Enter Wrap Coefficient'
+        sub_param_db.update_one({'_id': chat_id}, {"$set": {'helm': 0}}, upsert=True)
+    elif sub_params['torpedoes'] == 1:
+        sub_param_db.update_one({'_id': chat_id}, {"$set": {'torpedoes': 0}}, upsert=True)
+        torpedoes_compute(update, context, params['helm_dir'])
+        params = parameters_db.find_one({'_id': chat_id})
+        params['input'] = 0
+        msg = params['msg'] + main_screen(update, context)
+        params['msg'] = ''
+        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+    context.bot.edit_message_text(chat_id=query.message.chat_id,
+                                  message_id=query.message.message_id,
+                                  text=main_message(msg),
+                                  reply_markup=keyboard,
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
@@ -1139,10 +1166,22 @@ def main_message(update=''):
     return out_msg
 
 
+def main_screen(update, context):
+    query = update.callback_query
+    chat_id = query.message.chat_id
+    params = parameters_db.find_one({'_id': chat_id})
+    params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
+    params['status_msg'] = status(params['sector'], params['stardate'], params['condition'], params['energy'],
+                                  params['torpedoes'], params['shields'], params['klingons'])
+    main_screen_msg = params['srs_map'] + params['status_msg']
+    return main_screen_msg
+
+
 [dispatcher.add_handler(i) for i in [
     CommandHandler(['start', 'restart'], start_game),
     CallbackQueryHandler(bot_lrs, pattern='lrs'),
     CallbackQueryHandler(bot_srs, pattern='srs'),
+    CallbackQueryHandler(helm_direction, pattern='arrow'),
     CallbackQueryHandler(main_menu, pattern='menu'),
     CallbackQueryHandler(shields_button, pattern='shields'),
     CallbackQueryHandler(helm_menu, pattern='helm'),
