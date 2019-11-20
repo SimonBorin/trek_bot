@@ -21,7 +21,6 @@ collection = db.user_data_collection
 
 parameters_db = db.parameters
 sub_param_db = db.sub_param
-int_command = ''
 
 
 def info(update, context):
@@ -207,7 +206,7 @@ def start_game(update, context, restart_msg=''):
                      'shields': shields, 'stardate': stardate, 'sector': sector,
                      'ent_position': ent_position, 'attack_msg_out': '',
                      'x': x, 'y': y, 'z': z, 'current_sector': current_sector, 'condition': condition,
-                     'wrap': 0, 'helm': 0, 'srs_map': srs_map, 'status_msg': status_msg}
+                     'wrap': 0, 'helm': 0, 'srs_map': srs_map, 'status_msg': status_msg,'num_input':''}
     sub_param4db = {'_id': chat_id, 'shields_flag': 0, 'helm': 0, 'phasers_flag': 0, 'lrs_flag': 0, 'helm': 0,
                     'wrap': 0, 'torpedoes': 0}
     try:
@@ -537,7 +536,7 @@ def srs(current_sector, ent_pos):
     #       *  = Star
     #      -O- = Enterprise
     klingons = False
-    local_srs_map = "```"
+    local_srs_map = "```\n"
     for i in range(0, 64):
         if i % 8 == 0:
             local_srs_map += "\n"
@@ -852,8 +851,10 @@ def main_menu(update, context):
 
 def phasers_button(update, context):
     chat_id = update.effective_chat.id
+    chat_id = update.effective_chat.id
+    params = parameters_db.find_one({'_id': chat_id})
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'phasers_flag': 1}}, upsert=True)
-    msg = f'Phaser Energy:{int_command}'
+    msg = f"Phaser Energy:{params['num_input']}"
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
                                   text=main_message(msg),
@@ -863,8 +864,10 @@ def phasers_button(update, context):
 
 def torpedoes_button(update, context):
     chat_id = update.effective_chat.id
+    chat_id = update.effective_chat.id
+    params = parameters_db.find_one({'_id': chat_id})
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'torpedoes': 1}}, upsert=True)
-    msg = f'Fire in direction:{int_command}'
+    msg = f"Fire in direction:{params['num_input']}"
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
                                   text=main_message(msg),
@@ -875,8 +878,10 @@ def torpedoes_button(update, context):
 def back2main(update, context):
     query = update.callback_query
     drop_subparams_flag(query.message.chat_id)
-    global int_command
-    int_command = ''
+    chat_id = update.effective_chat.id
+    params = parameters_db.find_one({'_id': chat_id})
+    params['num_input'] = ''
+    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=update.callback_query.message.message_id,
                                   text=main_message(),
@@ -896,35 +901,39 @@ def back2menu(update, context):
 def num_menu(update, context):
     query = update.callback_query
     print(update.callback_query.data)
+    chat_id = update.effective_chat.id
+    params = parameters_db.find_one({'_id': chat_id})
     input = update.callback_query.data
     pattern = re.compile("^\d*$")
-    global int_command
     if pattern.match(input):
-        int_command += input
-    msg = f'Your command:{int_command}'
+        temp_num = params['num_input']
+        temp_num += input
+        params['num_input'] = temp_num
+        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+    msg = f"Your command:{params['num_input']}"
     print(msg)
     chat_id = query.message.chat_id
     sub_params = sub_param_db.find_one({'_id': chat_id})
     params = parameters_db.find_one({'_id': chat_id})
     if sub_params['helm'] == 1:
-        msg = f'Setting Helm Vector:{int_command}'
-        params['helm'] = int(int_command)
+        msg = f"Setting Helm Vector:{params['num_input']}"
+        params['helm'] = int(params['num_input'])
 
     elif sub_params['wrap'] == 1:
-        msg = f'Enter Wrap Coefficient:{int_command}'
-        params['wrap'] = int(int_command)
+        msg = f"Enter Wrap Coefficient:{params['num_input']}"
+        params['wrap'] = int(params['num_input'])
 
     elif sub_params['shields_flag'] == 1:
-        msg = f'Energy to the shields:{int_command}'
-        params['input'] = int(int_command)
+        msg = f"Energy to the shields:{params['num_input']}"
+        params['input'] = int(params['num_input'])
 
     elif sub_params['phasers_flag'] == 1:
-        msg = f'Phaser Energy:{int_command}'
-        params['input'] = int(int_command)
+        msg = f"Phaser Energy:{params['num_input']}"
+        params['input'] = int(params['num_input'])
 
     elif sub_params['torpedoes'] == 1:
-        msg = f'Fire in direction:{int_command}'
-        params['input'] = int(int_command)
+        msg = f"Fire in direction:{params['num_input']}"
+        params['input'] = int(params['num_input'])
 
     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
 
@@ -940,17 +949,18 @@ def num_command(update, context):
     chat_id = query.message.chat_id
     params = parameters_db.find_one({'_id': chat_id})
     sub_params = sub_param_db.find_one({'_id': chat_id})
-    global int_command
     if sub_params['helm'] == 1:
         msg = 'Enter Wrap Coefficient'
         keyboard = num_keyboard()
         sub_param_db.update_one({'_id': chat_id}, {"$set": {'helm': 0}}, upsert=True)
-        int_command = ''
+        params['num_input'] = ''
+        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
 
     elif sub_params['wrap'] == 1:
         keyboard = main_keyboard()
         sub_param_db.update_one({'_id': chat_id}, {"$set": {'wrap': 0}}, upsert=True)
-        int_command = ''
+        params['num_input'] = ''
+        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
         helm_out(update, context)
         params = parameters_db.find_one({'_id': chat_id})
         params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
@@ -958,9 +968,10 @@ def num_command(update, context):
 
     elif sub_params['shields_flag'] == 1:
         keyboard = main_keyboard()
-        shields_update = int_command
+        shields_update = params['num_input']
         sub_param_db.update_one({'_id': chat_id}, {"$set": {'shields_flag': 0}}, upsert=True)
-        int_command = ''
+        params['num_input'] = ''
+        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
         input = params['input']
         params['input'] = 0
         shields_compute(update, context, input)
@@ -972,7 +983,8 @@ Energy to shields {shields_update}
     elif sub_params['phasers_flag'] == 1:
         keyboard = main_keyboard()
         sub_param_db.update_one({'_id': chat_id}, {"$set": {'phasers_flag': 0}}, upsert=True)
-        int_command = ''
+        params['num_input'] = ''
+        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
         input = params['input']
         params = parameters_db.find_one({'_id': chat_id})
         params['input'] = 0
@@ -984,7 +996,8 @@ Energy to shields {shields_update}
     elif sub_params['torpedoes'] == 1:
         keyboard = main_keyboard()
         sub_param_db.update_one({'_id': chat_id}, {"$set": {'torpedoes': 0}}, upsert=True)
-        int_command = ''
+        params['num_input'] = ''
+        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
         input = params['input']
         torpedoes_compute(update, context, input)
         params = parameters_db.find_one({'_id': chat_id})
@@ -1026,21 +1039,22 @@ Energy to shields {shields_update}
 
 def num_backspace(update, context):
     query = update.callback_query
-    chat_id = query.message.chat_id
-    global int_command
-    int_command = int_command[:-1]
-    msg = f'Your command:{int_command}'
+    chat_id = update.effective_chat.id
+    params = parameters_db.find_one({'_id': chat_id})
+    params['num_input'] = params['num_input'][:-1]
+    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+    msg = f"Your command:{params['num_input']}"
     sub_params = sub_param_db.find_one({'_id': chat_id})
     if sub_params['shields_flag'] == 1:
-        msg = f'Energy to the shields:{int_command}'
+        msg = f"Energy to the shields:{params['num_input']}"
     elif sub_params['helm'] == 1:
-        msg = f'Setting Helm Vector:{int_command}'
+        msg = f"Setting Helm Vector:{params['num_input']}"
     elif sub_params['wrap'] == 1:
-        msg = f'Enter Wrap Coefficient:{int_command}'
+        msg = f"Enter Wrap Coefficient:{params['num_input']}"
     elif sub_params['phasers_flag'] == 1:
-        msg = f'Phaser Energy:{int_command}'
+        msg = f"Phaser Energy:{params['num_input']}"
     elif sub_params['torpedoes'] == 1:
-        msg = f'Fire in direction:{int_command}'
+        msg = f"Fire in direction:{params['num_input']}"
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=update.callback_query.message.message_id,
                                   text=main_message(msg),
@@ -1114,7 +1128,7 @@ def restart(update, context):
 
 def main_message(update=''):
     length_keeper = '''```
--------------------------------------------------------
+\n---------------------------
     ```'''
     message = 'Waiting for orders, Capitain!'
     if update == '':
