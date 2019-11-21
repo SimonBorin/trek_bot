@@ -50,15 +50,15 @@ def num_keyboard():
 
 def helm_keyboard():
     keyboard = [
-        InlineKeyboardButton('\u2196', callback_data='arrow_7'),
+        InlineKeyboardButton('↖️', callback_data='arrow_7'),
         InlineKeyboardButton('⬆️', callback_data='arrow_8'),
-        InlineKeyboardButton('\u2197', callback_data='arrow_9'),
+        InlineKeyboardButton('↗️', callback_data='arrow_9'),
         InlineKeyboardButton('⬅️', callback_data='arrow_4'),
         InlineKeyboardButton('ESC', callback_data='back2main'),
         InlineKeyboardButton('➡️', callback_data='arrow_6'),
-        InlineKeyboardButton('\u2199', callback_data='arrow_1'),
+        InlineKeyboardButton('↘️', callback_data='arrow_1'),
         InlineKeyboardButton('⬇️', callback_data='arrow_2'),
-        InlineKeyboardButton('\u2198', callback_data='arrow_3')
+        InlineKeyboardButton('↘️', callback_data='arrow_3')
         ]
     reply_markup = InlineKeyboardMarkup(build_menu(keyboard, n_cols=3))
     return reply_markup

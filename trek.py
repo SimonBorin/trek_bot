@@ -27,8 +27,10 @@ def info(update, context):
     info_msg = 'Thats my boring bot, based on star trek text rpg from 1971.\n' \
                'https://github.com/SimonBorin/trek_bot/\n' \
                '@blooomberg\n'
-    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id,
-                                  text=info_msg, reply_markup=menu_keyboard())
+    context.bot.edit_message_text(chat_id=update.effective_chat.id,
+                                  message_id=update.callback_query.message.message_id,
+                                  text=info_msg,
+                                  reply_markup=menu_keyboard())
 
 
 def galaxy_info(update, context):
@@ -43,7 +45,7 @@ Your mission: to seek out and destroy the fleet of Klingon warships which are me
 '''
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(info_msg),
+                                  text=info_msg,
                                   reply_markup=manual_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -68,7 +70,7 @@ you would use course 4, warp factor 1.
 ```'''
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(info_msg),
+                                  text=info_msg,
                                   reply_markup=manual_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -83,7 +85,7 @@ Example - 207 = 2 Klingons, No Starbases, & 7 stars.
   ```'''
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(info_msg),
+                                  text=info_msg,
                                   reply_markup=manual_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -98,7 +100,7 @@ def srs_info(update, context):
   ```'''
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(info_msg),
+                                  text=info_msg,
                                   reply_markup=manual_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -111,7 +113,7 @@ Klingons have phasers, too!)
      ```'''
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(info_msg),
+                                  text=info_msg,
                                   reply_markup=manual_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -125,7 +127,7 @@ quadrant.
      ```'''
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(info_msg),
+                                  text=info_msg,
                                   reply_markup=manual_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -138,7 +140,7 @@ energy includes shield energy.
      ```'''
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(info_msg),
+                                  text=info_msg,
                                   reply_markup=manual_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -206,16 +208,18 @@ def start_game(update, context, restart_msg=''):
                      'shields': shields, 'stardate': stardate, 'sector': sector,
                      'ent_position': ent_position, 'attack_msg_out': '',
                      'x': x, 'y': y, 'z': z, 'current_sector': current_sector, 'condition': condition,
-                     'wrap': 0, 'helm': 0, 'srs_map': srs_map, 'status_msg': status_msg,'num_input':''}
+                     'wrap': 0, 'helm': 0, 'srs_map': srs_map, 'status_msg': status_msg, 'num_input': ''}
     sub_param4db = {'_id': chat_id, 'shields_flag': 0, 'helm': 0, 'phasers_flag': 0, 'lrs_flag': 0, 'helm': 0,
                     'wrap': 0, 'torpedoes': 0}
     try:
-        parameters_db.update_one({'_id': chat_id}, {"$set": parameters4db}, upsert=True)
-        sub_param_db.update_one({'_id': chat_id}, {"$set": sub_param4db}, upsert=True)
+        parameters_db.delete_one({'_id': chat_id})
+        sub_param_db.delete_one({'_id': chat_id})
     except Exception as e:
         print('error mongo! chat_id = ', chat_id, '\nerror = ', e)
-    start_msg = restart_msg + blurb_msg + srs_map + status_msg
-    update.effective_message.reply_text(main_message(start_msg),
+    parameters_db.update_one({'_id': chat_id}, {"$set": parameters4db}, upsert=True)
+    sub_param_db.update_one({'_id': chat_id}, {"$set": sub_param4db}, upsert=True)
+    start_msg = restart_msg + blurb_msg
+    update.effective_message.reply_text(main_message(update, context, start_msg),
                                         reply_markup=main_keyboard(),
                                         parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -231,7 +235,7 @@ def bot_helm(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id,
                              text='``` \nCourse direction(1-4,5-9)? ```',
                              parse_mode=telegram.ParseMode.MARKDOWN)
-    update.message.reply_text(main_message(), reply_markup=main_keyboard())
+    update.message.reply_text(main_message(update, context), reply_markup=main_keyboard())
 
 
 def bot_lrs(update, context):
@@ -243,7 +247,7 @@ def bot_lrs(update, context):
     lrs_out = lrs(galaxy, sector)
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(lrs_out),
+                                  text=main_message(update, context, lrs_out),
                                   reply_markup=main_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -259,7 +263,7 @@ def bot_srs(update, context):
     srs_ = f"{params['srs_map']}{params['status_msg']}"
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(srs_),
+                                  text=main_message(update, context, srs_),
                                   reply_markup=main_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -304,7 +308,7 @@ def shields_button(update, context):
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'shields_flag': 1}}, upsert=True)
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(msg),
+                                  text=main_message(update, context, msg),
                                   reply_markup=num_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -841,23 +845,27 @@ def drop_subparams_flag(chat_id):
 
 def main_menu(update, context):
     query = update.callback_query
-    msg = '*Main Menu*'
+    # msg = '``` \nMain Menu```'
+    msg = '''```
+╔╦╗╔═╗╦╔╗╔
+║║║╠═╣║║║║
+╩ ╩╩ ╩╩╝╚╝
+```'''
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(msg),
+                                  text=msg,
                                   reply_markup=menu_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 def phasers_button(update, context):
     chat_id = update.effective_chat.id
-    chat_id = update.effective_chat.id
     params = parameters_db.find_one({'_id': chat_id})
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'phasers_flag': 1}}, upsert=True)
     msg = f"Phaser Energy:{params['num_input']}"
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(msg),
+                                  text=main_message(update, context, msg),
                                   reply_markup=num_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -869,7 +877,7 @@ def torpedoes_button(update, context):
     msg = "Fire in direction: "
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(msg),
+                                  text=main_message(update, context, msg),
                                   reply_markup=helm_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -883,16 +891,22 @@ def back2main(update, context):
     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(main_screen(update, context)),
+                                  text=main_message(update, context, ''),
                                   reply_markup=main_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 def back2menu(update, context):
     query = update.callback_query
+    # msg = '``` \nMain Menu```'
+    msg = '''```
+╔╦╗╔═╗╦╔╗╔
+║║║╠═╣║║║║
+╩ ╩╩ ╩╩╝╚╝
+    ```'''
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(),
+                                  text=msg,
                                   reply_markup=menu_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -914,6 +928,7 @@ def num_menu(update, context):
     chat_id = query.message.chat_id
     sub_params = sub_param_db.find_one({'_id': chat_id})
     params = parameters_db.find_one({'_id': chat_id})
+    keyboard = num_keyboard()
     if sub_params['helm'] == 1:
         msg = f"Setting Helm Vector:{params['num_input']}"
         params['helm'] = int(params['num_input'])
@@ -921,25 +936,49 @@ def num_menu(update, context):
     elif sub_params['wrap'] == 1:
         msg = f"Enter Wrap Coefficient:{params['num_input']}"
         params['wrap'] = int(params['num_input'])
+        if params['wrap'] > 63:
+            msg += '''```
+Enterprise can`t jump 
+over more then 63 sectors 
+at a time.
+Wrap Coefficient
+would be set on max.
+```'''
+            params['wrap'] = 63
+            params['num_input'] = 0
 
     elif sub_params['shields_flag'] == 1:
         msg = f"Energy to the shields:{params['num_input']}"
         params['input'] = int(params['num_input'])
+        if params['input'] >= params['energy']:
+            msg += '''```
+Warning! 
+Not Enough Energy!
+Further actions will cause 
+self-destruction!
+            ```'''
 
     elif sub_params['phasers_flag'] == 1:
         msg = f"Phaser Energy:{params['num_input']}"
         params['input'] = int(params['num_input'])
+        if params['input'] >= params['energy']:
+            msg += '''```
+Warning! 
+Not Enough Energy!
+Further actions will cause 
+self-destruction!
+                    ```'''
 
     elif sub_params['torpedoes'] == 1:
         msg = f"Fire in direction:{params['num_input']}"
         params['input'] = int(params['num_input'])
 
     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-
+    text = main_message(update, context, msg)
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(msg),
-                                  reply_markup=num_keyboard(),
+                                  text=main_message(update, context, msg),
+                                  reply_markup=keyboard,
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
@@ -948,14 +987,7 @@ def num_command(update, context):
     chat_id = query.message.chat_id
     params = parameters_db.find_one({'_id': chat_id})
     sub_params = sub_param_db.find_one({'_id': chat_id})
-    if sub_params['helm'] == 1:
-        msg = 'Enter Wrap Coefficient'
-        keyboard = num_keyboard()
-        sub_param_db.update_one({'_id': chat_id}, {"$set": {'helm': 0}}, upsert=True)
-        params['num_input'] = ''
-        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-
-    elif sub_params['wrap'] == 1:
+    if sub_params['wrap'] == 1:
         keyboard = main_keyboard()
         sub_param_db.update_one({'_id': chat_id}, {"$set": {'wrap': 0}}, upsert=True)
         params['num_input'] = ''
@@ -988,22 +1020,11 @@ Energy to shields {shields_update}
         params = parameters_db.find_one({'_id': chat_id})
         params['input'] = 0
         phasers_compute(update, context, input)
+        params = parameters_db.find_one({'_id': chat_id})
         params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
         msg = params['msg']
         params['msg'] = ''
 
-    elif sub_params['torpedoes'] == 1:
-        keyboard = main_keyboard()
-        sub_param_db.update_one({'_id': chat_id}, {"$set": {'torpedoes': 0}}, upsert=True)
-        params['num_input'] = ''
-        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-        input = params['input']
-        torpedoes_compute(update, context, input)
-        params = parameters_db.find_one({'_id': chat_id})
-        params['input'] = 0
-        params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
-        msg = params['msg']
-        params['msg'] = ''
     else:
         msg = ''
         keyboard = main_keyboard()
@@ -1025,13 +1046,10 @@ Energy to shields {shields_update}
         params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
         params['status_msg'] = status(params['sector'], params['stardate'], params['condition'], params['energy'],
                                       params['torpedoes'], params['shields'], params['klingons'])
-        if msg == 'Enter Wrap Coefficient':
-            msg += ''
-        else:
-            msg += params['srs_map'] + params['status_msg']
+
         context.bot.edit_message_text(chat_id=query.message.chat_id,
                                       message_id=update.callback_query.message.message_id,
-                                      text=main_message(msg),
+                                      text=main_message(update, context, msg),
                                       reply_markup=keyboard,
                                       parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -1056,7 +1074,7 @@ def num_backspace(update, context):
         msg = f"Fire in direction:{params['num_input']}"
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=main_message(msg),
+                                  text=main_message(update, context, msg),
                                   reply_markup=num_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -1071,7 +1089,7 @@ def helm_menu(update, context):
     msg = 'Setting Helm Vector'
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=query.message.message_id,
-                                  text=main_message(msg),
+                                  text=main_message(update, context, msg),
                                   reply_markup=helm_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -1094,21 +1112,26 @@ def helm_direction(update, context):
         torpedoes_compute(update, context, params['helm_dir'])
         params = parameters_db.find_one({'_id': chat_id})
         params['input'] = 0
-        msg = params['msg'] + main_screen(update, context)
+        msg = params['msg']
         params['msg'] = ''
         parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=query.message.message_id,
-                                  text=main_message(msg),
+                                  text=main_message(update, context, msg),
                                   reply_markup=keyboard,
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 def manual_menu(update, context):
     query = update.callback_query
+    msg = '''```
+╔╦╗╔═╗╔╗╔╦ ╦╔═╗╦  
+║║║╠═╣║║║║ ║╠═╣║  
+╩ ╩╩ ╩╝╚╝╚═╝╩ ╩╩═╝
+```'''
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=query.message.message_id,
-                                  text=main_message(),
+                                  text=msg,
                                   reply_markup=manual_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -1117,14 +1140,14 @@ def gameover(update, context, attack_mag):
     query = update.callback_query
     chat_id = query.message.chat_id
     msg = attack_mag + lose() + '''```
-╔═╗┌─┐┌┬┐┌─┐  ╔═╗┬  ┬┌─┐┬─┐
-║ ╦├─┤│││├┤   ║ ║└┐┌┘├┤ ├┬┘
-╚═╝┴ ┴┴ ┴└─┘  ╚═╝ └┘ └─┘┴└─                                                        
+╔═╗╔═╗╔╦╗╔═╗  ╔═╗╦  ╦╔═╗╦═╗
+║ ╦╠═╣║║║║╣   ║ ║╚╗╔╝║╣ ╠╦╝
+╚═╝╩ ╩╩ ╩╚═╝  ╚═╝ ╚╝ ╚═╝╩╚═                                                    
     ```'''
 
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=query.message.message_id,
-                                  text=main_message(msg),
+                                  text=msg,
                                   reply_markup=restart_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -1132,13 +1155,13 @@ def gameover(update, context, attack_mag):
 def victory(update, context, attack_mag):
     query = update.callback_query
     msg = attack_mag + promotion() + '''```
-╦  ╦┬┌─┐┌┬┐┌─┐┬─┐╦ ╦
-╚╗╔╝││   │ │ │├┬┘╚╦╝
- ╚╝ ┴└─┘ ┴ └─┘┴└─ ╩                                                        
+╦  ╦╦╔═╗╔╦╗╔═╗╦═╗╦ ╦
+╚╗╔╝║║   ║ ║ ║╠╦╝╚╦╝
+ ╚╝ ╩╚═╝ ╩ ╚═╝╩╚═ ╩                                                       
     ```'''
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=query.message.message_id,
-                                  text=main_message(msg),
+                                  text=msg,
                                   reply_markup=restart_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -1148,21 +1171,18 @@ def restart(update, context):
     start_game(update, context)
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=query.message.message_id,
-                                  text=main_message(),
+                                  text='',
                                   reply_markup=main_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
-def main_message(update=''):
-    length_keeper = '''```
-\n---------------------------
-    ```'''
+def main_message(update, context, incom=''):
     message = 'Waiting for orders, Capitain!'
-    if update == '':
+    if incom == '':
         out_msg = message
     else:
-        out_msg = update
-    out_msg = length_keeper + out_msg + length_keeper
+        out_msg = incom
+    out_msg = out_msg + main_screen(update, context)  # + out_msg
     return out_msg
 
 
