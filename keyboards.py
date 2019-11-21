@@ -55,7 +55,7 @@ def helm_keyboard():
         InlineKeyboardButton('⬅️', callback_data='arrow_4'),
         InlineKeyboardButton('ESC', callback_data='back2main'),
         InlineKeyboardButton('➡️', callback_data='arrow_6'),
-        InlineKeyboardButton('↘️', callback_data='arrow_1'),
+        InlineKeyboardButton('↙️', callback_data='arrow_1'),
         InlineKeyboardButton('⬇️', callback_data='arrow_2'),
         InlineKeyboardButton('↘️', callback_data='arrow_3')
         ]
