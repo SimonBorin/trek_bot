@@ -40,21 +40,37 @@ def num_keyboard():
         InlineKeyboardButton('\u238b', callback_data='back2main'),
         InlineKeyboardButton('0', callback_data='0'),
         InlineKeyboardButton('\u27f5', callback_data='backspace'),
-        ]
+    ]
 
     footer = InlineKeyboardButton('Enter', callback_data='enter')
     reply_markup = InlineKeyboardMarkup(build_menu(keyboard, n_cols=3,
-               footer_buttons=footer))
+                                                   footer_buttons=footer))
+    return reply_markup
+
+
+def helm_keyboard():
+    keyboard = [
+        InlineKeyboardButton('↖️', callback_data='arrow_7'),
+        InlineKeyboardButton('⬆️', callback_data='arrow_8'),
+        InlineKeyboardButton('↗️', callback_data='arrow_9'),
+        InlineKeyboardButton('⬅️', callback_data='arrow_4'),
+        InlineKeyboardButton('ESC', callback_data='back2main'),
+        InlineKeyboardButton('➡️', callback_data='arrow_6'),
+        InlineKeyboardButton('↘️', callback_data='arrow_1'),
+        InlineKeyboardButton('⬇️', callback_data='arrow_2'),
+        InlineKeyboardButton('↘️', callback_data='arrow_3')
+        ]
+    reply_markup = InlineKeyboardMarkup(build_menu(keyboard, n_cols=3))
     return reply_markup
 
 
 def menu_keyboard():
     keyboard = [
-                [InlineKeyboardButton('Restart', callback_data='restart')],
-                [InlineKeyboardButton('Manual', callback_data='manual')],
-                [InlineKeyboardButton('Info', callback_data='info')],
-                [InlineKeyboardButton('Back', callback_data='back2main')]
-                ]
+        [InlineKeyboardButton('Restart', callback_data='restart')],
+        [InlineKeyboardButton('Manual', callback_data='manual')],
+        [InlineKeyboardButton('Info', callback_data='info')],
+        [InlineKeyboardButton('Back', callback_data='back2main')]
+    ]
     return InlineKeyboardMarkup(keyboard)
 
 
@@ -75,6 +91,6 @@ def manual_keyboard():
 
 def restart_keyboard():
     keyboard = [
-                [InlineKeyboardButton('Restart', callback_data='restart')]
-                ]
+        [InlineKeyboardButton('Restart', callback_data='restart')]
+    ]
     return InlineKeyboardMarkup(keyboard)
