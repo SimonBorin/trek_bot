@@ -150,6 +150,14 @@ def manual(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id, text=msg)
 
 
+def start(update, context):
+    msg = '```\nStreting Game```'
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             text=msg,
+                             reply_markup=restart_keyboard(),
+                             parse_mode=telegram.ParseMode.MARKDOWN)
+
+
 def start_game(update, context, restart_msg=''):
     # main()
     query = update.callback_query
@@ -1198,7 +1206,7 @@ def main_screen(update, context):
 
 
 [dispatcher.add_handler(i) for i in [
-    CommandHandler(['start', 'restart'], start_game),
+    CommandHandler(['start', 'restart'], start),
     CallbackQueryHandler(bot_lrs, pattern='lrs'),
     CallbackQueryHandler(helm_direction, pattern='arrow'),
     CallbackQueryHandler(main_menu, pattern='menu'),

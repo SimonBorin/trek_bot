@@ -90,6 +90,6 @@ def manual_keyboard():
 
 def restart_keyboard():
     keyboard = [
-        [InlineKeyboardButton('Restart', callback_data='restart')]
+        [InlineKeyboardButton('New Game', callback_data='restart')]
     ]
     return InlineKeyboardMarkup(keyboard)
