@@ -1200,7 +1200,6 @@ def main_screen(update, context):
 [dispatcher.add_handler(i) for i in [
     CommandHandler(['start', 'restart'], start_game),
     CallbackQueryHandler(bot_lrs, pattern='lrs'),
-    CallbackQueryHandler(bot_srs, pattern='srs'),
     CallbackQueryHandler(helm_direction, pattern='arrow'),
     CallbackQueryHandler(main_menu, pattern='menu'),
     CallbackQueryHandler(shields_button, pattern='shields'),

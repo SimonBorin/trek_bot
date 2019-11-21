@@ -17,12 +17,11 @@ def main_keyboard():
     keyboard = [InlineKeyboardButton('Helm', callback_data='helm'),
                 InlineKeyboardButton('Shields', callback_data='shields'),
                 InlineKeyboardButton('LRS', callback_data='lrs'),
-                InlineKeyboardButton('SRS', callback_data='srs'),
                 InlineKeyboardButton('Phasers', callback_data='phasers'),
-                InlineKeyboardButton('Torpedoes', callback_data='torpedoes')
+                InlineKeyboardButton('Torpedoes', callback_data='torpedoes'),
+                InlineKeyboardButton('Menu', callback_data='menu')
                 ]
-    footer = InlineKeyboardButton('Menu', callback_data='menu')
-    reply_markup = InlineKeyboardMarkup(build_menu(keyboard, n_cols=2, footer_buttons=footer))
+    reply_markup = InlineKeyboardMarkup(build_menu(keyboard, n_cols=2))
     return reply_markup
 
 
