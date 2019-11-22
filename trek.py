@@ -1,5 +1,7 @@
 import random
 import re
+
+import schedule
 import yaml
 from telegram.ext import Updater
 from telegram.ext import CommandHandler, CallbackQueryHandler
@@ -339,7 +341,7 @@ def shields_compute(update, context, input):
 def phasers_compute(update, context, input):
     chat_id = update.effective_chat.id
     params = parameters_db.find_one({'_id': chat_id})
-    sub_params = sub_param_db.find_one({'_id': chat_id})
+    # sub_params = sub_param_db.find_one({'_id': chat_id})
     params['shields'], params['energy'], params['current_sector'], params['ks'], params['msg'] = \
         phasers(params['condition'], params['shields'], params['energy'], params['current_sector'],
                 params['ent_position'], params['x'], input)
@@ -361,7 +363,7 @@ def phasers_compute(update, context, input):
         params['status_msg'] = status(params['sector'], params['stardate'], params['condition'], params['energy'],
                                       params['torpedoes'], params['shields'], params['klingons'])
     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-    sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
+    # sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
     attack(update, context)
 
 
@@ -1120,7 +1122,7 @@ def helm_direction(update, context):
         torpedoes_compute(update, context, params['helm_dir'])
         params = parameters_db.find_one({'_id': chat_id})
         params['input'] = 0
-        msg = params['msg']
+        msg = params['msg']+params['attack_msg_out']
         params['msg'] = ''
         parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
     context.bot.edit_message_text(chat_id=query.message.chat_id,
@@ -1205,6 +1207,20 @@ def main_screen(update, context):
     return main_screen_msg
 
 
+def booze(update, context):
+    query = update.callback_query
+    start_text = '''```
+tst
+```'''
+    context.bot.send_message_text(chat_id=query.message.chat_id,
+                                  message_id=query.message.message_id,
+                                  text=start_text,
+                                  reply_markup=main_keyboard(),
+                                  parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+
+
 [dispatcher.add_handler(i) for i in [
     CommandHandler(['start', 'restart'], start),
     CallbackQueryHandler(bot_lrs, pattern='lrs'),
@@ -1233,3 +1249,4 @@ def main_screen(update, context):
 
 if __name__ == '__main__':
     updater.start_polling()
+
