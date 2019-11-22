@@ -1,7 +1,5 @@
 import random
 import re
-
-import schedule
 import yaml
 from telegram.ext import Updater
 from telegram.ext import CommandHandler, CallbackQueryHandler
@@ -161,8 +159,6 @@ def start(update, context):
 
 
 def start_game(update, context, restart_msg=''):
-    # main()
-    query = update.callback_query
     blurb_msg = blurb()
     # Set up a random stardate
     stardate = round(float(random.randrange(1000, 1500, 1)), 2)
@@ -190,7 +186,7 @@ def start_game(update, context, restart_msg=''):
         # galaxy.append(x * 100 + y * 10 + z)
         galaxy.append([x] + [y] + [z])
         # Keep a record of how many klingons are left to be destroyed
-        klingons = klingons + x
+        klingons += x
     # Choose the starting sector and position for the Enterprise
     sector = random.randint(0, 63)
     ent_position = random.randint(0, 63)
@@ -206,7 +202,16 @@ def start_game(update, context, restart_msg=''):
     current_sector = init(x, y, z, ent_position)
     # Perform a short range scan
     condition, srs_map = srs(current_sector, ent_position)
-    status_msg = status(sector, stardate, condition, energy, torpedoes, shields, klingons)
+    params = {
+        'sector':sector,
+        'stardate': stardate,
+        'condition': condition,
+        'energy': energy,
+        'torpedoes': torpedoes,
+        'shields': shields,
+        'klingons': klingons
+    }
+    status_msg = status(params)
     # Keep going until we have destroyed all the klingons or we run out of
     # energy or we quit
     chat_id = update.effective_chat.id
@@ -267,9 +272,7 @@ def bot_srs(update, context):
     drop_subparams_flag(chat_id)
     params = parameters_db.find_one({'_id': chat_id})
     params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
-    params['status_msg'] = status(params['sector'], params['stardate'], params['condition'], params['energy'],
-                                  params['torpedoes'],
-                                  params['shields'], params['klingons'])
+    params['status_msg'] = status(params)
     srs_ = f"{params['srs_map']}{params['status_msg']}"
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
@@ -323,28 +326,18 @@ def shields_button(update, context):
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
-def shields_compute(update, context, input):
-    chat_id = update.effective_chat.id
-    params = parameters_db.find_one({'_id': chat_id})
-    sub_params = sub_param_db.find_one({'_id': chat_id})
+def shields_compute(params, sub_params,input):
     params['energy'], params['shields'] = addshields(params['energy'], params['shields'], input)
     params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
-    params['status_msg'] = status(params['sector'], params['stardate'], params['condition'], params['energy'],
-                                  params['torpedoes'],
-                                  params['shields'], params['klingons'])
+    params['status_msg'] = status(params)
     sub_params['shields_flag'] = 0
-    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-    sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
-    attack(update, context)
+    params = attack(params)
+    return params, sub_params
+    
 
 
-def phasers_compute(update, context, input):
-    chat_id = update.effective_chat.id
-    params = parameters_db.find_one({'_id': chat_id})
-    # sub_params = sub_param_db.find_one({'_id': chat_id})
-    params['shields'], params['energy'], params['current_sector'], params['ks'], params['msg'] = \
-        phasers(params['condition'], params['shields'], params['energy'], params['current_sector'],
-                params['ent_position'], params['x'], input)
+def phasers_compute(update, context, params, input):
+    params = phasers(params, input)
     if params['ks'] < params['x']:
         # (x-ks) Klingons have been destroyed-update galaxy map
         # galaxy[sector] = galaxy[sector] - (100 * (x - ks))
@@ -360,22 +353,14 @@ def phasers_compute(update, context, input):
         gameover(update, context, msg)
     else:
         params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
-        params['status_msg'] = status(params['sector'], params['stardate'], params['condition'], params['energy'],
-                                      params['torpedoes'], params['shields'], params['klingons'])
-    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-    # sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
-    attack(update, context)
+        params['status_msg'] = status(params)
+        params = attack(params)
+    return params
 
 
-def torpedoes_compute(update, context, input):
-    chat_id = update.effective_chat.id
-    params = parameters_db.find_one({'_id': chat_id})
-    direction = input
-    params['torpedoes'], params['current_sector'], params['ks'], params['msg'] = \
-        photontorpedoes(update, context, params['torpedoes'], params['current_sector'], params['ent_position'],
-                        params['x'], direction)
-    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-    params = parameters_db.find_one({'_id': chat_id})
+
+def torpedoes_compute(params):
+    params = photontorpedoes(params)
     # A Klingon has been destroyed-update galaxy map
     if params['ks'] < params['x']:
         # galaxy[sector] = galaxy[sector] - 100
@@ -385,15 +370,12 @@ def torpedoes_compute(update, context, input):
         # update sector klingons
         params['x'] = params['ks']
     params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
-    params['status_msg'] = status(params['sector'], params['stardate'], params['condition'], params['energy'],
-                                  params['torpedoes'], params['shields'], params['klingons'])
-    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-    attack(update, context)
+    params['status_msg'] = status(params)
+    params = attack(params)
+    return params
 
 
-def helm_out(update, context):
-    chat_id = update.effective_chat.id
-    params = parameters_db.find_one({'_id': chat_id})
+def helm_out(params):
     new_sector, energy, ent_position, stardate, msg = helm(params['galaxy'], params['sector'], params['energy'],
                                                            params['current_sector'], params['ent_position'],
                                                            params['stardate'], params['helm_dir'], params['wrap'])
@@ -426,56 +408,37 @@ def helm_out(update, context):
         params['energy'] = 3000
         params['torpedoes'] = 15
         params['shields'] = 0
-    params['status_msg'] = status(params['sector'], params['stardate'], params['condition'], params['energy'],
-                                  params['torpedoes'], params['shields'], params['klingons'])
-    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-    attack(update, context)
+    params['status_msg'] = status(params)
+    params = attack(params)
+    return params
 
 
-def attack(update, context):
-    chat_id = update.effective_chat.id
-    params = parameters_db.find_one({'_id': chat_id})
-
-    condition = params['condition']
-    x = params['x']
-    current_sector = params['current_sector']
-    ent_position = params['ent_position']
-    stardate = params['stardate']
-    sector = params['sector']
-    shields = params['shields']
-    torpedoes = params['torpedoes']
-    klingons = params['klingons']
-    energy = params['energy']
+def attack(params):
     attack_mag = ''
-    if condition == "Red":
+    if params['condition'] == "Red":
         if random.randint(1, 9) < 6:
             attack_mag += '``` \nRed alert - Klingons attacking!\n ```'
-            damage = x * random.randint(1, 50)
-            shields = shields - damage
-            params['shields'] = shields
+            damage = params['x'] * random.randint(1, 50)
+            params['shields'] = params['shields'] - damage
             attack_mag += f'``` \nHit on shields: {damage} energy units\n ```'
             # Do we still have shields left?
-            if shields < 0:
+            if params['shields'] < 0:
                 attack_mag += '``` \nEnterprise dead in space\n ```'
-                energy = 0
-                params['energy'] = energy
-
+                params['energy'] = 0
             else:
-                condition, srs_map = srs(current_sector, ent_position)
-                params['condition'] = condition
-                # status_msg = status(sector, stardate, condition, energy, torpedoes, shields, klingons)
+                params['condition'], srs_map = srs(params['current_sector'], params['ent_position'])
     params['attack_msg_out'] = attack_mag
-    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+    return params
 
 
-def status(sector, stardate, condition, energy, torpedoes, shields, klingons):
+def status(params):
     status_msg = f''' ```
-Stardate:           {stardate}
-Condition:          {condition}
-Energy:             {energy}
-Photon torpedoes:   {torpedoes}
-Shields:            {shields}
-Klingons in galaxy: {klingons}
+Stardate:           {params['stardate']}
+Condition:          {params['condition']}
+Energy:             {params['energy']}
+Photon torpedoes:   {params['torpedoes']}
+Shields:            {params['shields']}
+Klingons in galaxy: {params['klingons']}
 ```
     '''
     return status_msg
@@ -506,14 +469,6 @@ You have been promoted to Admiral Kirk.
 def lose():
     lose_msg = "```\nYou are relieved of duty. ```"
     return lose_msg
-
-
-def decode(sector):
-    # Hundreds = klingons, tens = starbases, units = stars
-    klingons = int(sector / 100)
-    starbases = int((sector - klingons * 100) / 10)
-    stars = int(sector - klingons * 100 - starbases * 10)
-    return klingons, starbases, stars
 
 
 def init(klingons, bases, stars, eposition):
@@ -670,22 +625,22 @@ def lrs(galaxy, sector):
     return lrs_out
 
 
-def phasers(condition, shields, energy, sector, epos, ksec, bot_sub_command_):
+def phasers(params, bot_sub_command_):
     power = int(bot_sub_command_)
-    message = '``` \n'
-    if power <= energy:
+    params['message'] = '``` \n'
+    if power <= params['energy']:
         # Reduce available energy by amount directed to phaser banks
-        energy = energy - power
+        params['energy'] = params['energy'] - power
         # Divide phaser power by number of klingons in the sector if there are
         # any present! Space can do funny things to the mind ...
-        if ksec > 0:
-            power = power / ksec
+        if params['x'] > 0:
+            power = power / params['x']
             # Work out the vertical and horizotal displacement of Enterprise
-            horiz = epos / 8
-            vert = epos - (8 * horiz)
+            horiz = params['ent_position'] / 8
+            vert = params['ent_position'] - (8 * horiz)
             # Check all of the 64 positions in the sector for Klingons
             for i in range(0, 64):
-                if sector[i] < 0:
+                if params['current_sector'][i] < 0:
                     # We have a Klingon!
                     # Work out its horizontal and vertical displacement
                     horizk = i / 8
@@ -698,36 +653,36 @@ def phasers(condition, shields, energy, sector, epos, ksec, bot_sub_command_):
                         dist = dist + 1
                     # Klingon energy is negative, so add on the phaser power
                     # corrected for distance
-                    sector[i] = sector[i] + int(power / dist)
-                    if sector[i] >= 0:
+                    params['current_sector'][i] = params['current_sector'][i] + int(power / dist)
+                    if params['current_sector'][i] >= 0:
                         # Set this part of space to be empty
-                        sector[i] = 0
+                        params['current_sector'][i] = 0
                         # Decrement sector klingons
-                        ksec = int(ksec - 1)
-                        message += 'Klingon destroyed!\n'
+                        params['ks'] = int(params['x'] - 1)
+                        params['message'] += 'Klingon destroyed!\n'
                     else:
                         # We have a hit on Enterprise's shields if not docked
-                        if condition != "Docked":
+                        if params['condition'] != "Docked":
                             damage = int(power / dist)
-                            shields = shields - damage
-                            message += f'Hit on shields: {damage} energy units\n'
+                            params['shields'] = params['shields'] - damage
+                            params[' message'] += f'Hit on shields: {damage} energy units\n'
     else:
-        message += 'Not enough energy, Captain!'
-    message += '```'
-    return shields, energy, sector, ksec, message
+        params['message'] += 'Not enough energy, Captain!'
+    params['message'] += '```'
+    return params
 
 
-def photontorpedoes(update, context, torpedoes, sector, epos, ksec, direction_):
-    if torpedoes < 1:
+def photontorpedoes(params):
+    if params['torpedoes'] < 1:
         msg = '``` \nNo photon torpedoes left, captain! ```'
     else:
-        direction = int(direction_)
+        direction = params['helm_dir']
         if 1 <= direction <= 9 and direction != 5:
             # Work out the horizontal and vertical co-ordinates
             # of the Enterprise in the current sector
             # 0,0 is top left and 7,7 is bottom right
-            horiz = int(epos / 8)
-            vert = int(epos - horiz * 8)
+            horiz = int(params['ent_position'] / 8)
+            vert = int(params['ent_position'] - horiz * 8)
             # And calculate the direction to fire the torpedo
             hinc, vinc = calcvector(direction)
             # A torpedo only works in the current sector and stops moving
@@ -743,30 +698,28 @@ def photontorpedoes(update, context, torpedoes, sector, epos, ksec, direction_):
                     msg = '``` \nTorpedo missed ```'
                 else:
                     # Have we hit an object?
-                    if sector[vert + 8 * horiz] == 2:
+                    if params['current_sector'][vert + 8 * horiz] == 2:
                         # Oh dear - taking out a starbase ends the game
                         out = True
-                        sector[vert + 8 * horiz] = 0
-                        chat_id = update.effective_chat.id
-                        params = parameters_db.find_one({'_id': chat_id})
+                        params['current_sector'][vert + 8 * horiz] = 0
                         params['energy'] = 0
-                        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
                         msg = '``` \nStarbase destroyed ```'
-                    elif sector[vert + 8 * horiz] == 3:
+                    elif params['current_sector'][vert + 8 * horiz] == 3:
                         # Shooting a torpedo into a star has no effect
                         out = True
                         msg = '``` \nTorpedo missed ```'
-                    elif sector[vert + 8 * horiz] < 0:
+                    elif params['current_sector'][vert + 8 * horiz] < 0:
                         # Hit and destroyed a Klingon!
                         out = True
-                        sector[vert + 8 * horiz] = 0
-                        ksec = ksec - 1
+                        params['current_sector'][vert + 8 * horiz] = 0
+                        params['ks'] = params['x'] - 1
                         msg = '``` \nKlingon destroyed! ```'
             # One fewer torpedo
-            torpedoes = torpedoes - 1
+            params['torpedoes'] -= 1
         else:
             msg = '``` \nYour command is not logical, Captain. ```'
-    return torpedoes, sector, ksec, msg
+    params['msg'] = msg
+    return params
 
 
 def addshields(energy, shields, num_input):
@@ -882,7 +835,6 @@ def phasers_button(update, context):
 
 def torpedoes_button(update, context):
     chat_id = update.effective_chat.id
-    params = parameters_db.find_one({'_id': chat_id})
     sub_param_db.update_one({'_id': chat_id}, {"$set": {'torpedoes': 1}}, upsert=True)
     msg = "Fire in direction: "
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
@@ -926,18 +878,16 @@ def num_menu(update, context):
     print(update.callback_query.data)
     chat_id = update.effective_chat.id
     params = parameters_db.find_one({'_id': chat_id})
+    sub_params = sub_param_db.find_one({'_id': chat_id})
     input = update.callback_query.data
     pattern = re.compile("^\d*$")
     if pattern.match(input):
         temp_num = params['num_input']
         temp_num += input
         params['num_input'] = temp_num
-        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
     msg = f"Your command:{params['num_input']}"
     print(msg)
-    chat_id = query.message.chat_id
-    sub_params = sub_param_db.find_one({'_id': chat_id})
-    params = parameters_db.find_one({'_id': chat_id})
+
     keyboard = num_keyboard()
     if sub_params['helm'] == 1:
         msg = f"Setting Helm Vector:{params['num_input']}"
@@ -984,7 +934,6 @@ self-destruction!
         params['input'] = int(params['num_input'])
 
     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-    text = main_message(update, context, msg)
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=update.callback_query.message.message_id,
                                   text=main_message(update, context, msg),
@@ -1001,22 +950,19 @@ def num_command(update, context):
         keyboard = main_keyboard()
         sub_param_db.update_one({'_id': chat_id}, {"$set": {'wrap': 0}}, upsert=True)
         params['num_input'] = ''
-        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-        helm_out(update, context)
-        params = parameters_db.find_one({'_id': chat_id})
+        params = helm_out(params)
         params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
         msg = ''
 
     elif sub_params['shields_flag'] == 1:
         keyboard = main_keyboard()
         shields_update = params['num_input']
-        sub_param_db.update_one({'_id': chat_id}, {"$set": {'shields_flag': 0}}, upsert=True)
         params['num_input'] = ''
-        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
         input = params['input']
         params['input'] = 0
-        shields_compute(update, context, input)
-        params = parameters_db.find_one({'_id': chat_id})
+        sub_params['shields_flag'] = 0
+        params, sub_params = shields_compute(params, sub_params, input)
+        sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
         msg = f'''```
 Energy to shields {shields_update}
 ```'''
@@ -1025,12 +971,9 @@ Energy to shields {shields_update}
         keyboard = main_keyboard()
         sub_param_db.update_one({'_id': chat_id}, {"$set": {'phasers_flag': 0}}, upsert=True)
         params['num_input'] = ''
-        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
         input = params['input']
-        params = parameters_db.find_one({'_id': chat_id})
         params['input'] = 0
-        phasers_compute(update, context, input)
-        params = parameters_db.find_one({'_id': chat_id})
+        params = phasers_compute(update, context, params, input)
         params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
         msg = params['msg']
         params['msg'] = ''
@@ -1039,24 +982,21 @@ Energy to shields {shields_update}
         msg = ''
         keyboard = main_keyboard()
 
-    params = parameters_db.find_one({'_id': chat_id})
     if params['attack_msg_out'] != '':
         msg += params['attack_msg_out']
         params['attack_msg_out'] = ''
 
-    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-
     if params['energy'] == 0:
         gameover(update, context, msg)
         params['msg'] = ''
-        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+    elif params['klingons']==0:
+        victory(update, context)
+        params['msg'] = ''
     else:
 
-        params = parameters_db.find_one({'_id': chat_id})
         params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
-        params['status_msg'] = status(params['sector'], params['stardate'], params['condition'], params['energy'],
-                                      params['torpedoes'], params['shields'], params['klingons'])
-
+        params['status_msg'] = status(params)
+        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
         context.bot.edit_message_text(chat_id=query.message.chat_id,
                                       message_id=update.callback_query.message.message_id,
                                       text=main_message(update, context, msg),
@@ -1110,7 +1050,6 @@ def helm_direction(update, context):
     params = parameters_db.find_one({'_id': chat_id})
     sub_params = sub_param_db.find_one({'_id': chat_id})
     params['helm_dir'] = int(update.callback_query.data[-1:])
-    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
     keyboard = main_keyboard()
     msg = ''
     if sub_params['helm'] == 1:
@@ -1119,17 +1058,20 @@ def helm_direction(update, context):
         sub_param_db.update_one({'_id': chat_id}, {"$set": {'helm': 0}}, upsert=True)
     elif sub_params['torpedoes'] == 1:
         sub_param_db.update_one({'_id': chat_id}, {"$set": {'torpedoes': 0}}, upsert=True)
-        torpedoes_compute(update, context, params['helm_dir'])
-        params = parameters_db.find_one({'_id': chat_id})
+        params = torpedoes_compute(params)
         params['input'] = 0
         msg = params['msg']+params['attack_msg_out']
         params['msg'] = ''
-        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-    context.bot.edit_message_text(chat_id=query.message.chat_id,
-                                  message_id=query.message.message_id,
-                                  text=main_message(update, context, msg),
-                                  reply_markup=keyboard,
-                                  parse_mode=telegram.ParseMode.MARKDOWN)
+    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+    if params['klingons']==0:
+        victory(update, context)
+        params['msg'] = ''
+    else:
+        context.bot.edit_message_text(chat_id=query.message.chat_id,
+                                      message_id=query.message.message_id,
+                                      text=main_message(update, context, msg),
+                                      reply_markup=keyboard,
+                                      parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 def manual_menu(update, context):
@@ -1148,7 +1090,6 @@ def manual_menu(update, context):
 
 def gameover(update, context, attack_mag):
     query = update.callback_query
-    chat_id = query.message.chat_id
     msg = attack_mag + lose() + '''```
 ╔═╗╔═╗╔╦╗╔═╗  ╔═╗╦  ╦╔═╗╦═╗
 ║ ╦╠═╣║║║║╣   ║ ║╚╗╔╝║╣ ╠╦╝
@@ -1162,9 +1103,9 @@ def gameover(update, context, attack_mag):
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
-def victory(update, context, attack_mag):
+def victory(update, context):
     query = update.callback_query
-    msg = attack_mag + promotion() + '''```
+    msg = promotion() + '''```
 ╦  ╦╦╔═╗╔╦╗╔═╗╦═╗╦ ╦
 ╚╗╔╝║║   ║ ║ ║╠╦╝╚╦╝
  ╚╝ ╩╚═╝ ╩ ╚═╝╩╚═ ╩                                                       
@@ -1201,8 +1142,7 @@ def main_screen(update, context):
     chat_id = query.message.chat_id
     params = parameters_db.find_one({'_id': chat_id})
     params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
-    params['status_msg'] = status(params['sector'], params['stardate'], params['condition'], params['energy'],
-                                  params['torpedoes'], params['shields'], params['klingons'])
+    params['status_msg'] = status(params)
     main_screen_msg = params['srs_map'] + params['status_msg']
     return main_screen_msg
 
@@ -1217,8 +1157,6 @@ tst
                                   text=start_text,
                                   reply_markup=main_keyboard(),
                                   parse_mode=telegram.ParseMode.MARKDOWN)
-
-
 
 
 [dispatcher.add_handler(i) for i in [
