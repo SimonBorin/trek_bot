@@ -39,8 +39,10 @@ def galaxy_info(update, context):
     The galaxy is divided into an 8 X 8 quadrant grid,
 and each quadrant is further divided into an 8 x 8 sector grid.
 
-You will be assigned a starting point somewhere in the galaxy to begin a tour of duty as commander of the starship Enterprise.
-Your mission: to seek out and destroy the fleet of Klingon warships which are menacing the United Federation of Planets.
+You will be assigned a starting point somewhere in the galaxy 
+to begin a tour of duty as commander of the starship Enterprise.
+Your mission: to seek out and destroy the fleet of Klingon warships 
+which are menacing the United Federation of Planets.
  ```
 '''
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
@@ -78,7 +80,7 @@ you would use course 4, warp factor 1.
 def lrs_info(update, context):
     info_msg = '''```
     Shows conditions in space for one quadrant on each side of the Enterprise
-(which is in the middle of the scan). The scan is coded in the form \###\
+(which is in the middle of the scan). The scan is coded in the form ###
 where the units digit is the number of stars, the tens digit is the number
 of starbases, and the hundreds digit is the number of Klingons.
 Example - 207 = 2 Klingons, No Starbases, & 7 stars.
@@ -203,7 +205,7 @@ def start_game(update, context, restart_msg=''):
     # Perform a short range scan
     condition, srs_map = srs(current_sector, ent_position)
     params = {
-        'sector':sector,
+        'sector': sector,
         'stardate': stardate,
         'condition': condition,
         'energy': energy,
@@ -224,7 +226,7 @@ def start_game(update, context, restart_msg=''):
                      'ent_position': ent_position, 'attack_msg_out': '',
                      'x': x, 'y': y, 'z': z, 'current_sector': current_sector, 'condition': condition,
                      'wrap': 0, 'helm': 0, 'srs_map': srs_map, 'status_msg': status_msg, 'num_input': ''}
-    sub_param4db = {'_id': chat_id, 'shields_flag': 0, 'helm': 0, 'phasers_flag': 0, 'lrs_flag': 0, 'helm': 0,
+    sub_param4db = {'_id': chat_id, 'shields_flag': 0, 'helm': 0, 'phasers_flag': 0, 'lrs_flag': 0,
                     'wrap': 0, 'torpedoes': 0}
     try:
         parameters_db.delete_one({'_id': chat_id})
@@ -326,14 +328,13 @@ def shields_button(update, context):
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
-def shields_compute(params, sub_params,input):
+def shields_compute(params, sub_params, input):
     params['energy'], params['shields'] = addshields(params['energy'], params['shields'], input)
     params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
     params['status_msg'] = status(params)
     sub_params['shields_flag'] = 0
     params = attack(params)
     return params, sub_params
-    
 
 
 def phasers_compute(update, context, params, input):
@@ -356,7 +357,6 @@ def phasers_compute(update, context, params, input):
         params['status_msg'] = status(params)
         params = attack(params)
     return params
-
 
 
 def torpedoes_compute(params):
@@ -482,19 +482,19 @@ def init(klingons, bases, stars, eposition):
         position = random.randint(0, 63)
         if current_sector[position] == 0:
             current_sector[position] = 3
-            stars = stars - 1
+            stars -= 1
     # Add in the starbases (value = 2)
     while bases > 0:
         position = random.randint(0, 63)
         if current_sector[position] == 0:
             current_sector[position] = 2
-            bases = bases - 1
+            bases -= 1
     # Add in the klingons (value = -200)
     while klingons > 0:
         position = random.randint(0, 63)
         if current_sector[position] == 0:
             current_sector[position] = -200
-            klingons = klingons - 1
+            klingons -= 1
     return current_sector
 
 
@@ -566,7 +566,7 @@ def helm(galaxy, sector, energy, cur_sec, epos, stardate, helm_, warp_):
                 out = False
                 # Move the Enterprise warp units in the specified direction
                 i = 1
-                while i <= warp and out == False:
+                while i <= warp and out is False:
                     # Calculate the movement vector
                     vert = vert + vinc
                     horiz = horiz + hinc
@@ -600,7 +600,7 @@ def helm(galaxy, sector, energy, cur_sec, epos, stardate, helm_, warp_):
                             horiz = horiz - hinc
                         # Put the Enterprise in the new position
                         epos = vert + 8 * horiz
-                    i = i + 1
+                    i += 1
                     msg = '``` \nCalculateing ```'
             else:
                 msg = f'``` \nToo little energy left. Only {energy} units remain\n ```'
@@ -650,7 +650,7 @@ def phasers(params, bot_sub_command_):
                     y = vert - vertk
                     dist = 1
                     while ((dist + 1) * (dist + 1)) < (z * z + y * y):
-                        dist = dist + 1
+                        dist += 1
                     # Klingon energy is negative, so add on the phaser power
                     # corrected for distance
                     params['current_sector'][i] = params['current_sector'][i] + int(power / dist)
@@ -726,8 +726,8 @@ def addshields(energy, shields, num_input):
     # Add energy to shields
     power = int(num_input)
     if (power > 0) and (energy >= power):
-        energy = energy - power
-        shields = shields + power
+        energy -= power
+        shields += power
     return energy, shields
 
 
@@ -808,7 +808,6 @@ def drop_subparams_flag(chat_id):
 
 def main_menu(update, context):
     query = update.callback_query
-    # msg = '``` \nMain Menu```'
     msg = '''```
 ╔╦╗╔═╗╦╔╗╔
 ║║║╠═╣║║║║
@@ -860,7 +859,6 @@ def back2main(update, context):
 
 def back2menu(update, context):
     query = update.callback_query
-    # msg = '``` \nMain Menu```'
     msg = '''```
 ╔╦╗╔═╗╦╔╗╔
 ║║║╠═╣║║║║
@@ -989,7 +987,7 @@ Energy to shields {shields_update}
     if params['energy'] == 0:
         gameover(update, context, msg)
         params['msg'] = ''
-    elif params['klingons']==0:
+    elif params['klingons'] == 0:
         victory(update, context)
         params['msg'] = ''
     else:
@@ -1060,10 +1058,10 @@ def helm_direction(update, context):
         sub_param_db.update_one({'_id': chat_id}, {"$set": {'torpedoes': 0}}, upsert=True)
         params = torpedoes_compute(params)
         params['input'] = 0
-        msg = params['msg']+params['attack_msg_out']
+        msg = params['msg'] + params['attack_msg_out']
         params['msg'] = ''
     parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
-    if params['klingons']==0:
+    if params['klingons'] == 0:
         victory(update, context)
         params['msg'] = ''
     else:
@@ -1187,4 +1185,3 @@ tst
 
 if __name__ == '__main__':
     updater.start_polling()
-
