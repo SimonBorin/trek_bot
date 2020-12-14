@@ -9,13 +9,12 @@ from keyboards import main_keyboard, num_keyboard, menu_keyboard, manual_keyboar
 
 with open(r'./params.yaml') as file:
     props = yaml.load(file, Loader=yaml.FullLoader)
-    token = props['token']
     mongo = props['mongo']
     mongo_port = props['mongo_port']
 
-updater = Updater(token=token, use_context=True)
+updater = Updater(token=os.environ['BOT_TOKEN'], use_context=True)
 dispatcher = updater.dispatcher
-client = MongoClient(mongo, mongo_port)
+client = MongoClient(host=mongo, port=mongo_port, username='root', password=os.environ['MONGO_PASS'])
 db = client.user_database
 collection = db.user_data_collection
 
