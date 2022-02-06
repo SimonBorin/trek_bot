@@ -7,14 +7,14 @@ import telegram
 from pymongo import MongoClient
 from keyboards import main_keyboard, num_keyboard, menu_keyboard, manual_keyboard, restart_keyboard, helm_keyboard
 
-with open(r'./params.yaml') as file:
-    props = yaml.load(file, Loader=yaml.FullLoader)
-    mongo = props['mongo']
-    mongo_port = props['mongo_port']
+# with open(r'./params.yaml') as file:
+#     props = yaml.load(file, Loader=yaml.FullLoader)
+#     mongo = props['mongo']
+#     mongo_port = props['mongo_port']
 
 updater = Updater(token=os.environ['BOT_TOKEN'], use_context=True)
 dispatcher = updater.dispatcher
-client = MongoClient(host=mongo, port=mongo_port, username='root', password=os.environ['MONGO_PASS'])
+client = MongoClient(host='trek_db', port=27017, username='trek_user', password=os.environ['MONGO_PASS'])
 db = client.user_database
 collection = db.user_data_collection
 
