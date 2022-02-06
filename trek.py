@@ -15,7 +15,7 @@ from keyboards import main_keyboard, num_keyboard, menu_keyboard, manual_keyboar
 
 updater = Updater(token=os.environ['BOT_TOKEN'], use_context=True)
 dispatcher = updater.dispatcher
-client = MongoClient(host='trek_db', port='27017', username='trek_user', password=os.environ['MONGO_PASS'])
+client = MongoClient(host='trek_db', port=27017, username='trek_user', password=os.environ['MONGO_PASS'])
 db = client.user_database
 collection = db.user_data_collection
 
