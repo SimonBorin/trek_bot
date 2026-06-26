@@ -1,12 +1,16 @@
-FROM python:3.6
+FROM python:3.11-slim
+
 LABEL maintainer="Semen Borin <mrblooomberg@gmail.com>"
-ENV PYTHONUNBUFFERED 0
-RUN apt-get update -y &&\
-    apt-get install -y tzdata \
- && cp /usr/share/zoneinfo/Europe/Moscow /etc/localtime
-COPY ./requirements /trek/requirements
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /trek
-RUN pip install -r requirements
-COPY ./ /trek
-ENTRYPOINT [ "python" ]
-CMD [ "trek.py" ]
+
+COPY requirements /trek/requirements
+RUN python -m pip install --no-cache-dir --upgrade pip \
+    && python -m pip install --no-cache-dir -r requirements
+
+COPY . /trek
+
+CMD ["python", "trek.py"]

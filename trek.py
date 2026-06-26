@@ -1,26 +1,61 @@
 import random
 import os
 import re
-import yaml
 from telegram.ext import Updater
 from telegram.ext import CommandHandler, CallbackQueryHandler
 import telegram
 from pymongo import MongoClient
 from keyboards import main_keyboard, num_keyboard, menu_keyboard, manual_keyboard, restart_keyboard, helm_keyboard
 
-# with open(r'./params.yaml') as file:
-#     props = yaml.load(file, Loader=yaml.FullLoader)
-#     mongo = props['mongo']
-#     mongo_port = props['mongo_port']
+client = None
+db = None
+collection = None
+parameters_db = None
+sub_param_db = None
 
-updater = Updater(token=os.environ['BOT_TOKEN'], use_context=True)
-dispatcher = updater.dispatcher
-client = MongoClient(host='trek_db', port=27017, username='trek_user', password=os.environ['MONGO_PASS'])
-db = client.user_database
-collection = db.user_data_collection
 
-parameters_db = db.parameters
-sub_param_db = db.sub_param
+def required_env(name):
+    value = os.environ.get(name)
+    if not value:
+        raise RuntimeError(f'{name} environment variable is required')
+    return value
+
+
+def session_id(update):
+    if update.effective_user is not None:
+        return update.effective_user.id
+    return update.effective_chat.id
+
+
+def configure_database():
+    global client, db, collection, parameters_db, sub_param_db
+
+    mongo_host = os.environ.get('MONGO_HOST', 'trek_db')
+    mongo_port = int(os.environ.get('MONGO_PORT', '27017'))
+    mongo_user = os.environ.get('MONGO_USER', 'trek_user')
+    mongo_auth_source = os.environ.get('MONGO_AUTH_SOURCE', 'admin')
+    mongo_db = os.environ.get('MONGO_DB', 'user_database')
+
+    mongo_kwargs = {
+        'host': mongo_host,
+        'port': mongo_port,
+    }
+    if mongo_user:
+        mongo_kwargs.update({
+            'username': mongo_user,
+            'password': required_env('MONGO_PASS'),
+            'authSource': mongo_auth_source,
+        })
+
+    client = MongoClient(**mongo_kwargs)
+    db = client[mongo_db]
+    collection = db.user_data_collection
+    parameters_db = db.parameters
+    sub_param_db = db.sub_param
+
+
+def create_updater():
+    return Updater(token=required_env('BOT_TOKEN'), use_context=True)
 
 
 def info(update, context):
@@ -216,25 +251,27 @@ def start_game(update, context, restart_msg=''):
     status_msg = status(params)
     # Keep going until we have destroyed all the klingons or we run out of
     # energy or we quit
-    chat_id = update.effective_chat.id
-    username = update.effective_chat.username
-    first_name = update.effective_chat.first_name
-    last_name = update.effective_chat.last_name
-    parameters4db = {'_id': chat_id, 'username': username, 'first_name': first_name, 'last_name': last_name,
+    player_id = session_id(update)
+    user = update.effective_user or update.effective_chat
+    username = getattr(user, 'username', None)
+    first_name = getattr(user, 'first_name', None)
+    last_name = getattr(user, 'last_name', None)
+    parameters4db = {'_id': player_id, 'username': username, 'first_name': first_name, 'last_name': last_name,
+                     'chat_id': update.effective_chat.id,
                      'galaxy': galaxy, 'klingons': klingons, 'energy': energy, 'torpedoes': torpedoes,
                      'shields': shields, 'stardate': stardate, 'sector': sector,
                      'ent_position': ent_position, 'attack_msg_out': '',
                      'x': x, 'y': y, 'z': z, 'current_sector': current_sector, 'condition': condition,
                      'wrap': 0, 'helm': 0, 'srs_map': srs_map, 'status_msg': status_msg, 'num_input': ''}
-    sub_param4db = {'_id': chat_id, 'shields_flag': 0, 'helm': 0, 'phasers_flag': 0, 'lrs_flag': 0,
+    sub_param4db = {'_id': player_id, 'shields_flag': 0, 'helm': 0, 'phasers_flag': 0, 'lrs_flag': 0,
                     'wrap': 0, 'torpedoes': 0}
     try:
-        parameters_db.delete_one({'_id': chat_id})
-        sub_param_db.delete_one({'_id': chat_id})
+        parameters_db.delete_one({'_id': player_id})
+        sub_param_db.delete_one({'_id': player_id})
     except Exception as e:
-        print('error mongo! chat_id = ', chat_id, '\nerror = ', e)
-    parameters_db.update_one({'_id': chat_id}, {"$set": parameters4db}, upsert=True)
-    sub_param_db.update_one({'_id': chat_id}, {"$set": sub_param4db}, upsert=True)
+        print('error mongo! player_id = ', player_id, '\nerror = ', e)
+    parameters_db.update_one({'_id': player_id}, {"$set": parameters4db}, upsert=True)
+    sub_param_db.update_one({'_id': player_id}, {"$set": sub_param4db}, upsert=True)
     start_msg = restart_msg + blurb_msg
     update.effective_message.reply_text(main_message(update, context, start_msg),
                                         reply_markup=main_keyboard(),
@@ -246,9 +283,9 @@ def restart_game(update, context):
 
 
 def bot_helm(update, context):
-    chat_id = update.effective_chat.id
-    drop_subparams_flag(chat_id)
-    sub_param_db.update_one({'_id': chat_id}, {"$set": {'helm': 1}}, upsert=True)
+    player_id = session_id(update)
+    drop_subparams_flag(player_id)
+    sub_param_db.update_one({'_id': player_id}, {"$set": {'helm': 1}}, upsert=True)
     context.bot.send_message(chat_id=update.effective_chat.id,
                              text='``` \nCourse direction(1-4,5-9)? ```',
                              parse_mode=telegram.ParseMode.MARKDOWN)
@@ -256,9 +293,9 @@ def bot_helm(update, context):
 
 
 def bot_lrs(update, context):
-    chat_id = update.effective_chat.id
-    drop_subparams_flag(chat_id)
-    params = parameters_db.find_one({'_id': chat_id})
+    player_id = session_id(update)
+    drop_subparams_flag(player_id)
+    params = parameters_db.find_one({'_id': player_id})
     sector = params['sector']
     galaxy = params['galaxy']
     lrs_out = lrs(galaxy, sector)
@@ -270,9 +307,9 @@ def bot_lrs(update, context):
 
 
 def bot_srs(update, context):
-    chat_id = update.effective_chat.id
-    drop_subparams_flag(chat_id)
-    params = parameters_db.find_one({'_id': chat_id})
+    player_id = session_id(update)
+    drop_subparams_flag(player_id)
+    params = parameters_db.find_one({'_id': player_id})
     params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
     params['status_msg'] = status(params)
     srs_ = f"{params['srs_map']}{params['status_msg']}"
@@ -284,27 +321,27 @@ def bot_srs(update, context):
 
 
 def bot_phasers(update, context):
-    chat_id = update.effective_chat.id
-    drop_subparams_flag(chat_id)
-    sub_param_db.update_one({'_id': chat_id}, {"$set": {'phasers_flag': 1}}, upsert=True)
+    player_id = session_id(update)
+    drop_subparams_flag(player_id)
+    sub_param_db.update_one({'_id': player_id}, {"$set": {'phasers_flag': 1}}, upsert=True)
     context.bot.send_message(chat_id=update.effective_chat.id,
                              text=' ``` \nPhaser energy? ``` ',
                              parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 def bot_torpedoes(update, context):
-    chat_id = update.effective_chat.id
-    drop_subparams_flag(chat_id)
-    sub_param_db.update_one({'_id': chat_id}, {"$set": {'torpedoes': 1}}, upsert=True)
+    player_id = session_id(update)
+    drop_subparams_flag(player_id)
+    sub_param_db.update_one({'_id': player_id}, {"$set": {'torpedoes': 1}}, upsert=True)
     context.bot.send_message(chat_id=update.effective_chat.id,
                              text='``` \nFire in direction(1-4,6-9)? ```',
                              parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 def bot_shields(update, context):
-    chat_id = update.effective_chat.id
-    drop_subparams_flag(chat_id)
-    sub_param_db.update_one({'_id': chat_id}, {"$set": {'shields_flag': 1}}, upsert=True)
+    player_id = session_id(update)
+    drop_subparams_flag(player_id)
+    sub_param_db.update_one({'_id': player_id}, {"$set": {'shields_flag': 1}}, upsert=True)
     context.bot.send_message(chat_id=update.effective_chat.id,
                              text=' ``` \nEnergy to shields? ``` ',
                              parse_mode=telegram.ParseMode.MARKDOWN)
@@ -318,9 +355,9 @@ def bot_resign(update, context):
 
 
 def shields_button(update, context):
-    chat_id = update.effective_chat.id
+    player_id = session_id(update)
     msg = 'Energy to the shields:'
-    sub_param_db.update_one({'_id': chat_id}, {"$set": {'shields_flag': 1}}, upsert=True)
+    sub_param_db.update_one({'_id': player_id}, {"$set": {'shields_flag': 1}}, upsert=True)
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
                                   text=main_message(update, context, msg),
@@ -798,12 +835,12 @@ def showhelp():
     return msg
 
 
-def drop_subparams_flag(chat_id):
-    sub_params = sub_param_db.find_one({'_id': chat_id})
+def drop_subparams_flag(player_id):
+    sub_params = sub_param_db.find_one({'_id': player_id})
     for i in sub_params:
         if i != '_id':
             sub_params[i] = 0
-    sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
+    sub_param_db.update_one({'_id': player_id}, {"$set": sub_params}, upsert=True)
 
 
 def main_menu(update, context):
@@ -821,9 +858,9 @@ def main_menu(update, context):
 
 
 def phasers_button(update, context):
-    chat_id = update.effective_chat.id
-    params = parameters_db.find_one({'_id': chat_id})
-    sub_param_db.update_one({'_id': chat_id}, {"$set": {'phasers_flag': 1}}, upsert=True)
+    player_id = session_id(update)
+    params = parameters_db.find_one({'_id': player_id})
+    sub_param_db.update_one({'_id': player_id}, {"$set": {'phasers_flag': 1}}, upsert=True)
     msg = f"Phaser Energy:{params['num_input']}"
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
@@ -833,8 +870,8 @@ def phasers_button(update, context):
 
 
 def torpedoes_button(update, context):
-    chat_id = update.effective_chat.id
-    sub_param_db.update_one({'_id': chat_id}, {"$set": {'torpedoes': 1}}, upsert=True)
+    player_id = session_id(update)
+    sub_param_db.update_one({'_id': player_id}, {"$set": {'torpedoes': 1}}, upsert=True)
     msg = "Fire in direction: "
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
@@ -845,11 +882,11 @@ def torpedoes_button(update, context):
 
 def back2main(update, context):
     query = update.callback_query
-    drop_subparams_flag(query.message.chat_id)
-    chat_id = update.effective_chat.id
-    params = parameters_db.find_one({'_id': chat_id})
+    player_id = session_id(update)
+    drop_subparams_flag(player_id)
+    params = parameters_db.find_one({'_id': player_id})
     params['num_input'] = ''
-    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+    parameters_db.update_one({'_id': player_id}, {"$set": params}, upsert=True)
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=update.callback_query.message.message_id,
                                   text=main_message(update, context, ''),
@@ -874,11 +911,11 @@ def back2menu(update, context):
 def num_menu(update, context):
     query = update.callback_query
     print(update.callback_query.data)
-    chat_id = update.effective_chat.id
-    params = parameters_db.find_one({'_id': chat_id})
-    sub_params = sub_param_db.find_one({'_id': chat_id})
+    player_id = session_id(update)
+    params = parameters_db.find_one({'_id': player_id})
+    sub_params = sub_param_db.find_one({'_id': player_id})
     input = update.callback_query.data
-    pattern = re.compile("^\d*$")
+    pattern = re.compile(r'^\d*$')
     if pattern.match(input):
         temp_num = params['num_input']
         temp_num += input
@@ -931,7 +968,7 @@ self-destruction!
         msg = f"Fire in direction:{params['num_input']}"
         params['input'] = int(params['num_input'])
 
-    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+    parameters_db.update_one({'_id': player_id}, {"$set": params}, upsert=True)
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=update.callback_query.message.message_id,
                                   text=main_message(update, context, msg),
@@ -941,12 +978,12 @@ self-destruction!
 
 def num_command(update, context):
     query = update.callback_query
-    chat_id = query.message.chat_id
-    params = parameters_db.find_one({'_id': chat_id})
-    sub_params = sub_param_db.find_one({'_id': chat_id})
+    player_id = session_id(update)
+    params = parameters_db.find_one({'_id': player_id})
+    sub_params = sub_param_db.find_one({'_id': player_id})
     if sub_params['wrap'] == 1:
         keyboard = main_keyboard()
-        sub_param_db.update_one({'_id': chat_id}, {"$set": {'wrap': 0}}, upsert=True)
+        sub_param_db.update_one({'_id': player_id}, {"$set": {'wrap': 0}}, upsert=True)
         params['num_input'] = ''
         params = helm_out(params)
         params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
@@ -960,14 +997,14 @@ def num_command(update, context):
         params['input'] = 0
         sub_params['shields_flag'] = 0
         params, sub_params = shields_compute(params, sub_params, input)
-        sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
+        sub_param_db.update_one({'_id': player_id}, {"$set": sub_params}, upsert=True)
         msg = f'''```
 Energy to shields {shields_update}
 ```'''
 
     elif sub_params['phasers_flag'] == 1:
         keyboard = main_keyboard()
-        sub_param_db.update_one({'_id': chat_id}, {"$set": {'phasers_flag': 0}}, upsert=True)
+        sub_param_db.update_one({'_id': player_id}, {"$set": {'phasers_flag': 0}}, upsert=True)
         params['num_input'] = ''
         input = params['input']
         params['input'] = 0
@@ -994,7 +1031,7 @@ Energy to shields {shields_update}
 
         params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
         params['status_msg'] = status(params)
-        parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+        parameters_db.update_one({'_id': player_id}, {"$set": params}, upsert=True)
         context.bot.edit_message_text(chat_id=query.message.chat_id,
                                       message_id=update.callback_query.message.message_id,
                                       text=main_message(update, context, msg),
@@ -1004,12 +1041,12 @@ Energy to shields {shields_update}
 
 def num_backspace(update, context):
     query = update.callback_query
-    chat_id = update.effective_chat.id
-    params = parameters_db.find_one({'_id': chat_id})
+    player_id = session_id(update)
+    params = parameters_db.find_one({'_id': player_id})
     params['num_input'] = params['num_input'][:-1]
-    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+    parameters_db.update_one({'_id': player_id}, {"$set": params}, upsert=True)
     msg = f"Your command:{params['num_input']}"
-    sub_params = sub_param_db.find_one({'_id': chat_id})
+    sub_params = sub_param_db.find_one({'_id': player_id})
     if sub_params['shields_flag'] == 1:
         msg = f"Energy to the shields:{params['num_input']}"
     elif sub_params['helm'] == 1:
@@ -1029,11 +1066,11 @@ def num_backspace(update, context):
 
 def helm_menu(update, context):
     query = update.callback_query
-    chat_id = query.message.chat_id
-    sub_params = sub_param_db.find_one({'_id': chat_id})
+    player_id = session_id(update)
+    sub_params = sub_param_db.find_one({'_id': player_id})
     sub_params['helm'] = 1
     sub_params['wrap'] = 1
-    sub_param_db.update_one({'_id': chat_id}, {"$set": sub_params}, upsert=True)
+    sub_param_db.update_one({'_id': player_id}, {"$set": sub_params}, upsert=True)
     msg = 'Setting Helm Vector'
     context.bot.edit_message_text(chat_id=query.message.chat_id,
                                   message_id=query.message.message_id,
@@ -1044,23 +1081,23 @@ def helm_menu(update, context):
 
 def helm_direction(update, context):
     query = update.callback_query
-    chat_id = query.message.chat_id
-    params = parameters_db.find_one({'_id': chat_id})
-    sub_params = sub_param_db.find_one({'_id': chat_id})
+    player_id = session_id(update)
+    params = parameters_db.find_one({'_id': player_id})
+    sub_params = sub_param_db.find_one({'_id': player_id})
     params['helm_dir'] = int(update.callback_query.data[-1:])
     keyboard = main_keyboard()
     msg = ''
     if sub_params['helm'] == 1:
         keyboard = num_keyboard()
         msg = 'Enter Wrap Coefficient'
-        sub_param_db.update_one({'_id': chat_id}, {"$set": {'helm': 0}}, upsert=True)
+        sub_param_db.update_one({'_id': player_id}, {"$set": {'helm': 0}}, upsert=True)
     elif sub_params['torpedoes'] == 1:
-        sub_param_db.update_one({'_id': chat_id}, {"$set": {'torpedoes': 0}}, upsert=True)
+        sub_param_db.update_one({'_id': player_id}, {"$set": {'torpedoes': 0}}, upsert=True)
         params = torpedoes_compute(params)
         params['input'] = 0
         msg = params['msg'] + params['attack_msg_out']
         params['msg'] = ''
-    parameters_db.update_one({'_id': chat_id}, {"$set": params}, upsert=True)
+    parameters_db.update_one({'_id': player_id}, {"$set": params}, upsert=True)
     if params['klingons'] == 0:
         victory(update, context)
         params['msg'] = ''
@@ -1136,9 +1173,7 @@ def main_message(update, context, incom=''):
 
 
 def main_screen(update, context):
-    query = update.callback_query
-    chat_id = query.message.chat_id
-    params = parameters_db.find_one({'_id': chat_id})
+    params = parameters_db.find_one({'_id': session_id(update)})
     params['condition'], params['srs_map'] = srs(params['current_sector'], params['ent_position'])
     params['status_msg'] = status(params)
     main_screen_msg = params['srs_map'] + params['status_msg']
@@ -1157,31 +1192,42 @@ tst
                                   parse_mode=telegram.ParseMode.MARKDOWN)
 
 
-[dispatcher.add_handler(i) for i in [
-    CommandHandler(['start', 'restart'], start),
-    CallbackQueryHandler(bot_lrs, pattern='lrs'),
-    CallbackQueryHandler(helm_direction, pattern='arrow'),
-    CallbackQueryHandler(main_menu, pattern='menu'),
-    CallbackQueryHandler(shields_button, pattern='shields'),
-    CallbackQueryHandler(helm_menu, pattern='helm'),
-    CallbackQueryHandler(num_menu, pattern=r'^\d*$'),
-    CallbackQueryHandler(back2main, pattern='back2main'),
-    CallbackQueryHandler(num_backspace, pattern='backspace'),
-    CallbackQueryHandler(phasers_button, pattern='phasers'),
-    CallbackQueryHandler(torpedoes_button, pattern='torpedoes'),
-    CallbackQueryHandler(info, pattern='info'),
-    CallbackQueryHandler(manual_menu, pattern='manual'),
-    CallbackQueryHandler(back2menu, pattern='back2menu'),
-    CallbackQueryHandler(galaxy_info, pattern='galaxyInfo'),
-    CallbackQueryHandler(helm_info, pattern='1helmInfo'),
-    CallbackQueryHandler(lrs_info, pattern='2lrsInfo'),
-    CallbackQueryHandler(phasers_info, pattern='4phasersInfo'),
-    CallbackQueryHandler(torpedoes_info, pattern='5torpedoesInfo'),
-    CallbackQueryHandler(shields_info, pattern='6shieldsInfo'),
-    CallbackQueryHandler(srs_info, pattern='3srsinfo'),
-    CallbackQueryHandler(num_command, pattern='enter'),
-    CallbackQueryHandler(restart, pattern='restart')
-]]
+def register_handlers(dispatcher):
+    handlers = [
+        CommandHandler(['start', 'restart'], start),
+        CallbackQueryHandler(bot_lrs, pattern='lrs'),
+        CallbackQueryHandler(helm_direction, pattern='arrow'),
+        CallbackQueryHandler(main_menu, pattern='menu'),
+        CallbackQueryHandler(shields_button, pattern='shields'),
+        CallbackQueryHandler(helm_menu, pattern='helm'),
+        CallbackQueryHandler(num_menu, pattern=r'^\d*$'),
+        CallbackQueryHandler(back2main, pattern='back2main'),
+        CallbackQueryHandler(num_backspace, pattern='backspace'),
+        CallbackQueryHandler(phasers_button, pattern='phasers'),
+        CallbackQueryHandler(torpedoes_button, pattern='torpedoes'),
+        CallbackQueryHandler(info, pattern='info'),
+        CallbackQueryHandler(manual_menu, pattern='manual'),
+        CallbackQueryHandler(back2menu, pattern='back2menu'),
+        CallbackQueryHandler(galaxy_info, pattern='galaxyInfo'),
+        CallbackQueryHandler(helm_info, pattern='1helmInfo'),
+        CallbackQueryHandler(lrs_info, pattern='2lrsInfo'),
+        CallbackQueryHandler(phasers_info, pattern='4phasersInfo'),
+        CallbackQueryHandler(torpedoes_info, pattern='5torpedoesInfo'),
+        CallbackQueryHandler(shields_info, pattern='6shieldsInfo'),
+        CallbackQueryHandler(srs_info, pattern='3srsinfo'),
+        CallbackQueryHandler(num_command, pattern='enter'),
+        CallbackQueryHandler(restart, pattern='restart')
+    ]
+    for handler in handlers:
+        dispatcher.add_handler(handler)
+
+
+def main():
+    configure_database()
+    updater = create_updater()
+    register_handlers(updater.dispatcher)
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == '__main__':
-    updater.start_polling()
+    main()
