@@ -67,7 +67,8 @@ def menu_keyboard():
     keyboard = [
         [InlineKeyboardButton('Restart', callback_data='restart')],
         [InlineKeyboardButton('Manual', callback_data='manual')],
-        [InlineKeyboardButton('Info', callback_data='info')],
+        [InlineKeyboardButton('Plot', callback_data='plot')],
+        [InlineKeyboardButton('About', callback_data='about')],
         [InlineKeyboardButton('Back', callback_data='back2main')]
     ]
     return InlineKeyboardMarkup(keyboard)
