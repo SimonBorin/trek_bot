@@ -2,10 +2,12 @@ version: "3"
 services:
 
     StarTrek:
-        image: blooomberg/trek_bot
+        image: ghcr.io/simonborin/trek_bot:${GAME_VERSION:-latest}
         build:
             context: .
             dockerfile: ./Dockerfile
+            args:
+                GAME_VERSION: ${GAME_VERSION:-development}
         links:
             - mongo
         restart: always
@@ -16,4 +18,3 @@ services:
         restart: always
         ports:
             - 27017:27017
-

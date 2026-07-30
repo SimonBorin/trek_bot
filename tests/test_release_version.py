@@ -81,3 +81,41 @@ class ReleaseVersionTests(unittest.TestCase):
         self.assertIn("python scripts/next_version.py", workflow)
         self.assertIn('git tag -a "$TAG"', workflow)
         self.assertIn('git push origin "$TAG"', workflow)
+
+    def test_release_workflow_pushes_semver_and_latest_images_with_same_build_version(
+        self,
+    ):
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("tag: ${{ steps.version.outputs.tag }}", workflow)
+        self.assertRegex(workflow, r"(?m)^\s+needs:\s+version\s*$")
+        self.assertIn(
+            "RELEASE_TAG: ${{ needs.version.outputs.tag }}",
+            workflow,
+        )
+        self.assertIn(
+            "GAME_VERSION=${{ env.RELEASE_TAG }}",
+            workflow,
+        )
+        self.assertIn("IMAGE: ghcr.io/simonborin/trek_bot", workflow)
+        self.assertIn("${{ env.IMAGE }}:${{ env.RELEASE_TAG }}", workflow)
+        self.assertIn("${{ env.IMAGE }}:latest", workflow)
+        self.assertIn("ref: ${{ env.RELEASE_TAG }}", workflow)
+        self.assertRegex(workflow, r"(?m)^\s+push:\s+true\s*$")
+
+    def test_dockerfile_promotes_build_version_to_runtime_environment(self):
+        dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+        self.assertRegex(
+            dockerfile,
+            r"(?m)^ARG GAME_VERSION(?:=[^\s]+)?\s*$",
+        )
+        self.assertRegex(
+            dockerfile,
+            (
+                r"(?m)^ENV GAME_VERSION="
+                r"[\"']?(?:\$\{GAME_VERSION\}|\$GAME_VERSION)[\"']?\s*$"
+            ),
+        )

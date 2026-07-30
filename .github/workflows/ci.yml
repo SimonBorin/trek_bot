@@ -38,3 +38,6 @@ jobs:
             python -m pip install pytest
             python -m pytest
           fi
+
+      - name: Build release image
+        run: docker build --build-arg GAME_VERSION=v0.0.0 --tag trek-bot:test .

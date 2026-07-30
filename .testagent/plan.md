@@ -16,5 +16,9 @@
    `test_game_metadata_derives_next_repository_version`.
 6. Cover automatic tagging after merge with
    `test_release_workflow_tags_merged_master_commits_automatically`.
-7. Run the narrow test target, review every assertion against the acceptance
+7. Cover GHCR and build/runtime version propagation with
+   `test_release_workflow_pushes_semver_and_latest_images_with_same_build_version`,
+   `test_dockerfile_promotes_build_version_to_runtime_environment`, and
+   `test_about_displays_same_v_prefixed_release_tag_from_environment`.
+8. Run the narrow test target, review every assertion against the acceptance
    checklist, and record the clean result in `.testagent/status.md`.

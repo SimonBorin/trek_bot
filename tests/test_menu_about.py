@@ -115,7 +115,7 @@ class MenuAboutTests(unittest.TestCase):
     def test_about_text_uses_centralized_version_author_and_repository_metadata(self):
         trek = parse_module("trek.py")
         about = function_node(trek, "about")
-        metadata = metadata_values("9.8.7")
+        metadata = metadata_values("v9.8.7")
         imports = {
             alias.name
             for node in trek.body
@@ -130,13 +130,19 @@ class MenuAboutTests(unittest.TestCase):
                 for node in ast.walk(about)
             )
         )
-        self.assertEqual(metadata["version"], "9.8.7")
-        self.assertIn("Version: 9.8.7", metadata["about"])
+        self.assertEqual(metadata["version"], "v9.8.7")
+        self.assertIn("Version: v9.8.7", metadata["about"])
         self.assertIn("Author: Simon Borin (@blooomberg)", metadata["about"])
         self.assertIn(
             "GitHub: https://github.com/SimonBorin/trek_bot",
             metadata["about"],
         )
+
+    def test_about_displays_same_v_prefixed_release_tag_from_environment(self):
+        metadata = metadata_values("v1.2.3")
+
+        self.assertEqual(metadata["version"], "v1.2.3")
+        self.assertIn("Version: v1.2.3", metadata["about"])
 
     def test_game_metadata_has_no_hardcoded_0_1_0_version(self):
         metadata_source = (ROOT / "game_metadata.py").read_text(encoding="utf-8")
@@ -145,4 +151,4 @@ class MenuAboutTests(unittest.TestCase):
         self.assertNotIn("'0.1.0'", metadata_source)
 
     def test_game_metadata_derives_next_repository_version(self):
-        self.assertEqual(metadata_values()["version"], "0.1.3")
+        self.assertEqual(metadata_values()["version"], "v0.1.3")
