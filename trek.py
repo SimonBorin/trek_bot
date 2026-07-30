@@ -7,6 +7,7 @@ from telegram.ext import CommandHandler, CallbackQueryHandler
 import telegram
 from pymongo import MongoClient
 from keyboards import main_keyboard, num_keyboard, menu_keyboard, manual_keyboard, restart_keyboard, helm_keyboard
+from game_metadata import ABOUT_TEXT
 
 # with open(r'./params.yaml') as file:
 #     props = yaml.load(file, Loader=yaml.FullLoader)
@@ -23,13 +24,22 @@ parameters_db = db.parameters
 sub_param_db = db.sub_param
 
 
-def info(update, context):
-    info_msg = 'Thats my boring bot, based on star trek text rpg from 1971.\n' \
-               'https://github.com/SimonBorin/trek_bot/\n' \
-               '@blooomberg\n'
+def plot(update, context):
+    plot_msg = (
+        "You command the starship Enterprise.\n"
+        "Your mission is to seek out and destroy the Klingon fleet threatening "
+        "the United Federation of Planets before time runs out."
+    )
     context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                   message_id=update.callback_query.message.message_id,
-                                  text=info_msg,
+                                  text=plot_msg,
+                                  reply_markup=menu_keyboard())
+
+
+def about(update, context):
+    context.bot.edit_message_text(chat_id=update.effective_chat.id,
+                                  message_id=update.callback_query.message.message_id,
+                                  text=ABOUT_TEXT,
                                   reply_markup=menu_keyboard())
 
 
@@ -792,7 +802,8 @@ def showhelp():
 5 - Shields
 6 - Resign
     Manual
-    Info
+    Plot
+    About
 ```
     '''
     return msg
@@ -878,7 +889,7 @@ def num_menu(update, context):
     params = parameters_db.find_one({'_id': chat_id})
     sub_params = sub_param_db.find_one({'_id': chat_id})
     input = update.callback_query.data
-    pattern = re.compile("^\d*$")
+    pattern = re.compile(r"^\d*$")
     if pattern.match(input):
         temp_num = params['num_input']
         temp_num += input
@@ -1169,7 +1180,8 @@ tst
     CallbackQueryHandler(num_backspace, pattern='backspace'),
     CallbackQueryHandler(phasers_button, pattern='phasers'),
     CallbackQueryHandler(torpedoes_button, pattern='torpedoes'),
-    CallbackQueryHandler(info, pattern='info'),
+    CallbackQueryHandler(plot, pattern=r'^(plot|info)$'),
+    CallbackQueryHandler(about, pattern=r'^about$'),
     CallbackQueryHandler(manual_menu, pattern='manual'),
     CallbackQueryHandler(back2menu, pattern='back2menu'),
     CallbackQueryHandler(galaxy_info, pattern='galaxyInfo'),

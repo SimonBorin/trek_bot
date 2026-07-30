@@ -1,12 +1,19 @@
-FROM python:3.6
+FROM python:3.11-slim
+
+ARG GAME_VERSION=development
+
 LABEL maintainer="Semen Borin <mrblooomberg@gmail.com>"
-ENV PYTHONUNBUFFERED 0
-RUN apt-get update -y &&\
-    apt-get install -y tzdata \
- && cp /usr/share/zoneinfo/Europe/Moscow /etc/localtime
+LABEL org.opencontainers.image.source="https://github.com/SimonBorin/trek_bot"
+LABEL org.opencontainers.image.version="$GAME_VERSION"
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV GAME_VERSION="$GAME_VERSION"
+
 COPY ./requirements /trek/requirements
 WORKDIR /trek
-RUN pip install -r requirements
+RUN python -m pip install --no-cache-dir --upgrade pip \
+    && python -m pip install --no-cache-dir -r requirements
 COPY ./ /trek
-ENTRYPOINT [ "python" ]
-CMD [ "trek.py" ]
+
+CMD ["python", "trek.py"]
