@@ -1,5 +1,10 @@
+import os
+
+from scripts.next_version import repository_version
+
+
 GAME_TITLE = "Star Trek Text Game Bot"
-GAME_VERSION = "0.1.0"
+GAME_VERSION = os.environ.get("GAME_VERSION") or repository_version()
 AUTHOR_NAME = "Simon Borin"
 AUTHOR_HANDLE = "@blooomberg"
 REPOSITORY_URL = "https://github.com/SimonBorin/trek_bot"

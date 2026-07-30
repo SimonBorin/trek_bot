@@ -9,6 +9,12 @@
    `test_about_callback_handler_is_registered`.
 4. Cover centralized metadata and About content with
    `test_about_text_uses_centralized_version_author_and_repository_metadata`.
-5. Run the narrow pytest target, review every assertion against the acceptance
+5. Cover automatic versioning with
+   `test_next_version_increments_latest_stable_v0_1_2_tag_to_0_1_3`,
+   `test_version_at_v0_1_2_tagged_head_reports_0_1_2`,
+   `test_game_metadata_has_no_hardcoded_0_1_0_version`, and
+   `test_game_metadata_derives_next_repository_version`.
+6. Cover automatic tagging after merge with
+   `test_release_workflow_tags_merged_master_commits_automatically`.
+7. Run the narrow test target, review every assertion against the acceptance
    checklist, and record the clean result in `.testagent/status.md`.
-

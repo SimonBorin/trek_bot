@@ -1,0 +1,56 @@
+name: Create release tag
+
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - closed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-version
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Create next SemVer tag
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out release commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Calculate release version
+        id: version
+        run: |
+          version="$(python scripts/next_version.py)"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+          echo "tag=v$version" >>"$GITHUB_OUTPUT"
+
+      - name: Push release tag
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            [[ "$(git rev-list -n 1 "$TAG")" == "$(git rev-parse HEAD)" ]]
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"

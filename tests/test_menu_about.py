@@ -1,6 +1,10 @@
 import ast
+import json
+import os
 from pathlib import Path
 import re
+import subprocess
+import sys
 import unittest
 import warnings
 
@@ -57,23 +61,31 @@ def callback_handler_patterns(module):
     return handlers
 
 
-def assigned_string_values(module):
-    namespace = {}
-    for node in module.body:
-        if (
-            isinstance(node, ast.Assign)
-            and len(node.targets) == 1
-            and isinstance(node.targets[0], ast.Name)
-        ):
-            try:
-                namespace[node.targets[0].id] = eval(
-                    compile(ast.Expression(node.value), "<metadata>", "eval"),
-                    {"__builtins__": {}},
-                    namespace,
-                )
-            except (NameError, TypeError):
-                continue
-    return namespace
+def metadata_values(version=None):
+    environment = os.environ.copy()
+    if version is None:
+        environment.pop("GAME_VERSION", None)
+    else:
+        environment["GAME_VERSION"] = version
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import json, game_metadata; "
+                "print(json.dumps({"
+                "'version': game_metadata.GAME_VERSION, "
+                "'about': game_metadata.ABOUT_TEXT"
+                "}))"
+            ),
+        ],
+        cwd=ROOT,
+        env=environment,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return json.loads(result.stdout)
 
 
 class MenuAboutTests(unittest.TestCase):
@@ -103,7 +115,7 @@ class MenuAboutTests(unittest.TestCase):
     def test_about_text_uses_centralized_version_author_and_repository_metadata(self):
         trek = parse_module("trek.py")
         about = function_node(trek, "about")
-        metadata = assigned_string_values(parse_module("game_metadata.py"))
+        metadata = metadata_values("9.8.7")
         imports = {
             alias.name
             for node in trek.body
@@ -118,10 +130,19 @@ class MenuAboutTests(unittest.TestCase):
                 for node in ast.walk(about)
             )
         )
-        self.assertEqual(metadata["GAME_VERSION"], "0.1.0")
-        self.assertIn("Version: 0.1.0", metadata["ABOUT_TEXT"])
-        self.assertIn("Author: Simon Borin (@blooomberg)", metadata["ABOUT_TEXT"])
+        self.assertEqual(metadata["version"], "9.8.7")
+        self.assertIn("Version: 9.8.7", metadata["about"])
+        self.assertIn("Author: Simon Borin (@blooomberg)", metadata["about"])
         self.assertIn(
             "GitHub: https://github.com/SimonBorin/trek_bot",
-            metadata["ABOUT_TEXT"],
+            metadata["about"],
         )
+
+    def test_game_metadata_has_no_hardcoded_0_1_0_version(self):
+        metadata_source = (ROOT / "game_metadata.py").read_text(encoding="utf-8")
+
+        self.assertNotIn('"0.1.0"', metadata_source)
+        self.assertNotIn("'0.1.0'", metadata_source)
+
+    def test_game_metadata_derives_next_repository_version(self):
+        self.assertEqual(metadata_values()["version"], "0.1.3")
